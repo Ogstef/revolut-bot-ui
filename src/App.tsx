@@ -1,47 +1,23 @@
-import { useQuery } from '@tanstack/react-query';
-import { api } from './api/client';
-import Header from './components/Header';
-import StatsPanel from './components/StatsPanel';
-import PositionsTable from './components/PositionsTable';
-import TradesTable from './components/TradesTable';
-import PnlChart from './components/PnlChart';
-import ConfigPanel from './components/ConfigPanel';
+import { useState } from 'react';
+import type { StrategyName } from './api/client';
+import { PairProvider, usePair } from './context/PairContext';
+import { useBotStatus } from './hooks/useBotStatus';
+import { usePairs } from './hooks/usePairs';
+import { useStrategies } from './hooks/useStrategies';
+import Header from './components/layout/Header';
+import StrategyNav from './components/layout/StrategyNav';
+import OverviewPage from './pages/OverviewPage';
+import StrategyPage from './pages/StrategyPage';
 
-export default function App() {
-  const statusQ = useQuery({
-    queryKey: ['status'],
-    queryFn: api.getStatus,
-    refetchInterval: 10_000,
-    retry: false,
-  });
+type Tab = 'overview' | StrategyName;
 
-  const positionsQ = useQuery({
-    queryKey: ['positions'],
-    queryFn: api.getPositions,
-    refetchInterval: 15_000,
-    retry: false,
-  });
+function AppInner() {
+  const [activeTab, setActiveTab] = useState<Tab>('overview');
 
-  const tradesQ = useQuery({
-    queryKey: ['trades'],
-    queryFn: () => api.getTrades(100),
-    refetchInterval: 30_000,
-    retry: false,
-  });
-
-  const statsQ = useQuery({
-    queryKey: ['stats'],
-    queryFn: api.getStats,
-    refetchInterval: 60_000,
-    retry: false,
-  });
-
-  const pnlQ = useQuery({
-    queryKey: ['pnl'],
-    queryFn: api.getPnl,
-    refetchInterval: 60_000,
-    retry: false,
-  });
+  const { selectedPair, setSelectedPair } = usePair();
+  const statusQ = useBotStatus();
+  const pairsQ = usePairs();
+  const strategiesQ = useStrategies(selectedPair);
 
   const backendDown = statusQ.isError && !statusQ.isFetching;
 
@@ -53,7 +29,21 @@ export default function App() {
       overflow: 'hidden',
       background: 'var(--bg-base)',
     }}>
-      <Header status={statusQ.data} isLoading={statusQ.isLoading} />
+      <Header
+        status={statusQ.data}
+        isLoading={statusQ.isLoading}
+        pairs={pairsQ.data ?? []}
+        selectedPair={selectedPair}
+        onPairChange={pair => {
+          setSelectedPair(pair);
+          // Stay on same tab — queries auto re-fetch due to pair in query key
+        }}
+      />
+      <StrategyNav
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        strategies={strategiesQ.data}
+      />
 
       {backendDown && (
         <div style={{
@@ -69,41 +59,28 @@ export default function App() {
         </div>
       )}
 
-      {/* Main scrollable area */}
       <div style={{
         flex: 1,
         overflowY: 'auto',
         padding: '14px 16px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 12,
       }}>
-        {/* Row 1: Chart + Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 12 }}>
-          <PnlChart trades={tradesQ.data} positions={positionsQ.data} />
-          <StatsPanel stats={statsQ.data} pnl={pnlQ.data} positions={positionsQ.data} />
-        </div>
-
-        {/* Row 2: Open Positions */}
-        <div style={{ minHeight: 200 }}>
-          <PositionsTable positions={positionsQ.data} isLoading={positionsQ.isLoading} />
-        </div>
-
-        {/* Row 3: Recent Trades */}
-        <div style={{ minHeight: 240 }}>
-          <TradesTable trades={tradesQ.data} isLoading={tradesQ.isLoading} />
-        </div>
-
-        {/* Row 4: Config */}
-        <ConfigPanel />
-
-        {/* Footer */}
-        <div style={{ padding: '8px 0 4px', textAlign: 'center' }}>
-          <span style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.1em' }}>
-            REVOLUT TRADING BOT — LOCAL DASHBOARD — DATA REFRESHES AUTOMATICALLY
-          </span>
-        </div>
+        {activeTab === 'overview' ? (
+          <OverviewPage onStrategyClick={name => setActiveTab(name)} />
+        ) : (
+          <StrategyPage
+            strategyName={activeTab}
+            strategyInfoList={strategiesQ.data}
+          />
+        )}
       </div>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <PairProvider>
+      <AppInner />
+    </PairProvider>
   );
 }

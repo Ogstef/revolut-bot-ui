@@ -1,6 +1,6 @@
 const BASE = 'http://localhost:8089';
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
+export async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     headers: { 'Content-Type': 'application/json' },
     ...options,
@@ -10,17 +10,14 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   try { return JSON.parse(text) as T; } catch { return text as unknown as T; }
 }
 
-export const api = {
-  getStatus: () => request<BotStatus>('/api/status'),
-  getPositions: () => request<Position[]>('/api/positions'),
-  getTrades: (limit = 50) => request<Trade[]>(`/api/trades?limit=${limit}`),
-  getStats: () => request<Stats>('/api/stats'),
-  getPnl: () => request<PnlBreakdown>('/api/pnl'),
-  emergencyStop: () => request<string>('/api/emergency-stop', { method: 'POST' }),
-  resume: () => request<string>('/api/resume', { method: 'POST' }),
-  updateConfig: (cfg: Partial<ConfigUpdate>) =>
-    request<string>('/api/config', { method: 'POST', body: JSON.stringify(cfg) }),
-};
+export type StrategyName = 'EMA_CROSSOVER' | 'MACD' | 'BOLLINGER' | 'RSI_MOMENTUM';
+
+export const STRATEGIES: { name: StrategyName; displayName: string }[] = [
+  { name: 'EMA_CROSSOVER', displayName: 'EMA Crossover' },
+  { name: 'MACD',          displayName: 'MACD' },
+  { name: 'BOLLINGER',     displayName: 'Bollinger' },
+  { name: 'RSI_MOMENTUM',  displayName: 'RSI Momentum' },
+];
 
 export interface BotStatus {
   running: boolean;
@@ -31,6 +28,15 @@ export interface BotStatus {
   consecutiveLosses: number;
   circuitBreakerOn: boolean;
   reportedAt: string;
+}
+
+export interface StrategyInfo {
+  name: StrategyName;
+  displayName: string;
+  openPositions: number;
+  dailyPnl: number;
+  consecutiveLosses: number;
+  circuitBreakerActive: boolean;
 }
 
 export interface Position {
@@ -58,8 +64,10 @@ export interface Trade {
   pnl: number;
   pnlPct: number;
   exitReason: 'TP_HIT' | 'SL_HIT' | 'SIGNAL_EXIT' | 'MANUAL';
+  strategyName: StrategyName;
   tradingMode: string;
-  executedAt: string;
+  executedAt: string;  // entry/open time
+  closedAt?: string;   // exit/close time — use this for "Closed At" display
 }
 
 export interface Stats {
@@ -82,17 +90,43 @@ export interface PnlBreakdown {
   allTime: number;
 }
 
+export interface PairInfo {
+  pair: string;
+  baseAsset: string;
+  quoteAsset: string;
+}
+
+export interface SignalSummary {
+  strategy: StrategyName;
+  signalType: 'BUY' | 'SELL' | 'HOLD';
+  count: number;
+}
+
+export interface Signal {
+  id: number;
+  pair: string;
+  strategyName: StrategyName;
+  signalType: 'BUY' | 'SELL' | 'HOLD';
+  confidence: number;
+  reason: string;
+  emaShort?: number;
+  emaLong?: number;
+  rsi?: number;
+  currentPrice: number;
+  createdAt: string;
+}
+
 export interface ConfigUpdate {
-  maxPositionPct: number;
-  maxConcurrentPositions: number;
-  maxDailyLossPct: number;
-  maxConsecutiveLosses: number;
-  takeProfitPct: number;
-  stopLossPct: number;
-  emaShortPeriod: number;
-  emaLongPeriod: number;
-  rsiPeriod: number;
-  rsiOverbought: number;
-  rsiOversold: number;
-  paperBalance: number;
+  maxPositionPct?: number;
+  maxConcurrentPositions?: number;
+  maxDailyLossPct?: number;
+  maxConsecutiveLosses?: number;
+  takeProfitPct?: number;
+  stopLossPct?: number;
+  emaShortPeriod?: number;
+  emaLongPeriod?: number;
+  rsiPeriod?: number;
+  rsiOverbought?: number;
+  rsiOversold?: number;
+  paperBalance?: number;
 }
