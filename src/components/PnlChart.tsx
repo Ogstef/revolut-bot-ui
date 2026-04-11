@@ -3,16 +3,17 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
-import type { Trade } from '../api/client';
+import type { Trade, Position } from '../api/client';
 import { formatPnl } from '../utils/format';
 
-interface Props { trades: Trade[] | undefined; }
+interface Props {
+  trades: Trade[] | undefined;
+  positions?: Position[] | undefined;
+}
 
 type Range = 'daily' | 'weekly' | 'monthly' | 'all';
 
-function buildCumulative(trades: Trade[], range: Range) {
-  if (!trades.length) return [];
-
+function buildCumulative(trades: Trade[], range: Range, positions: Position[] = []) {
   const now = new Date();
   const cutoff = new Date();
   if (range === 'daily')   cutoff.setDate(now.getDate() - 1);
@@ -25,20 +26,32 @@ function buildCumulative(trades: Trade[], range: Range) {
     .sort((a, b) => new Date(a.executedAt).getTime() - new Date(b.executedAt).getTime());
 
   let cum = 0;
-  return filtered.map(t => {
+  const points: { label: string; pnl: number; live?: boolean }[] = filtered.map(t => {
     cum += t.pnl;
     const d = new Date(t.executedAt);
     const label = range === 'daily'
       ? d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
       : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    return { label, pnl: parseFloat(cum.toFixed(2)), trade: t };
+    return { label, pnl: parseFloat(cum.toFixed(2)) };
   });
+
+  // Append a live "NOW" point for open unrealized PnL
+  const unrealizedTotal = positions.reduce((sum, p) => sum + p.unrealisedPnl, 0);
+  if (unrealizedTotal !== 0 || (points.length === 0 && positions.length > 0)) {
+    const nowLabel = range === 'daily'
+      ? now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+      : now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    points.push({ label: nowLabel, pnl: parseFloat((cum + unrealizedTotal).toFixed(2)), live: true });
+  }
+
+  return points;
 }
 
 function CustomTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   const d = payload[0];
   const pos = d.value >= 0;
+  const isLive = d.payload.live;
   return (
     <div style={{
       background: 'var(--bg-elevated)',
@@ -49,17 +62,20 @@ function CustomTooltip({ active, payload }: any) {
     }}>
       <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 2 }}>{d.payload.label}</div>
       <div style={{ fontWeight: 700, color: pos ? 'var(--green)' : 'var(--red)' }}>
-        Cumulative: {formatPnl(d.value)}
+        {isLive ? 'Incl. Unrealized: ' : 'Cumulative: '}{formatPnl(d.value)}
       </div>
+      {isLive && <div style={{ fontSize: 10, color: 'var(--amber)', marginTop: 2 }}>● Live (position open)</div>}
     </div>
   );
 }
 
-export default function PnlChart({ trades }: Props) {
+export default function PnlChart({ trades, positions }: Props) {
   const [range, setRange] = useState<Range>('weekly');
-  const data = buildCumulative(trades ?? [], range);
+  const data = buildCumulative(trades ?? [], range, positions ?? []);
   const lastVal = data[data.length - 1]?.pnl ?? 0;
   const positive = lastVal >= 0;
+  const hasLivePoint = data[data.length - 1]?.live === true;
+  const unrealizedTotal = (positions ?? []).reduce((sum, p) => sum + p.unrealisedPnl, 0);
 
   const ranges: Range[] = ['daily', 'weekly', 'monthly', 'all'];
 
@@ -87,19 +103,29 @@ export default function PnlChart({ trades }: Props) {
         </div>
       </div>
 
-      <div style={{ padding: '12px 14px 8px', borderBottom: '1px solid var(--border)' }}>
+      <div style={{ padding: '12px 14px 8px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
         <span className={`value-md ${positive ? 'positive glow-green' : 'negative glow-red'}`}>
           {formatPnl(lastVal)}
         </span>
-        <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 8 }}>
-          {data.length} trades in range
+        {hasLivePoint && unrealizedTotal !== 0 && (
+          <span style={{ fontSize: 11, color: 'var(--amber)', fontWeight: 600 }}>
+            ● incl. {formatPnl(unrealizedTotal)} unrealized
+          </span>
+        )}
+        <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 'auto' }}>
+          {(data.length - (hasLivePoint ? 1 : 0))} closed trades in range
         </span>
       </div>
 
       <div style={{ flex: 1, padding: '12px 4px 8px 0', minHeight: 180 }}>
         {data.length === 0 ? (
-          <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
-            No data for this range
+          <div style={{ height: 180, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 12, gap: 6 }}>
+            <span>No closed trades in this range</span>
+            {unrealizedTotal !== 0 && (
+              <span style={{ color: unrealizedTotal >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>
+                Open position unrealized: {formatPnl(unrealizedTotal)}
+              </span>
+            )}
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={200}>
@@ -132,7 +158,14 @@ export default function PnlChart({ trades }: Props) {
                 dataKey="pnl"
                 stroke={positive ? 'var(--green)' : 'var(--red)'}
                 strokeWidth={1.5}
-                dot={false}
+                dot={(props: any) => {
+                  const { cx, cy, payload } = props;
+                  if (!payload.live) return <g key={`dot-${cx}-${cy}`} />;
+                  return (
+                    <circle key={`dot-${cx}-${cy}`} cx={cx} cy={cy} r={5}
+                      fill="var(--amber)" stroke="var(--bg-base)" strokeWidth={1.5} />
+                  );
+                }}
                 activeDot={{ r: 3, fill: positive ? 'var(--green)' : 'var(--red)' }}
               />
             </LineChart>

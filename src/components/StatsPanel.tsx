@@ -1,14 +1,17 @@
-import type { Stats, PnlBreakdown } from '../api/client';
+import type { Stats, PnlBreakdown, Position } from '../api/client';
 import { formatPnl } from '../utils/format';
 
 interface Props {
   stats: Stats | undefined;
   pnl: PnlBreakdown | undefined;
+  positions?: Position[] | undefined;
 }
 
-export default function StatsPanel({ stats, pnl }: Props) {
+export default function StatsPanel({ stats, pnl, positions }: Props) {
   const winRate = stats?.winRate ?? 0;
   const expectancy = stats?.expectancy ?? 0;
+  const unrealizedTotal = (positions ?? []).reduce((sum, p) => sum + p.unrealisedPnl, 0);
+  const openCount = (positions ?? []).length;
 
   return (
     <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -58,6 +61,25 @@ export default function StatsPanel({ stats, pnl }: Props) {
         <StatCell label="Best Trade" value={formatPnl(stats?.bestTrade ?? 0)} positive={true} border="top" />
         <StatCell label="Worst Trade" value={formatPnl(stats?.worstTrade ?? 0)} positive={false} border="top-left" />
       </div>
+
+      {/* Unrealized PnL from open positions */}
+      {openCount > 0 && (
+        <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border)', background: 'rgba(255,179,0,0.04)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="label">
+              ● Unrealized
+              <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: 4 }}>({openCount} open)</span>
+            </span>
+            <span style={{
+              fontSize: 13,
+              fontWeight: 700,
+              color: unrealizedTotal >= 0 ? 'var(--green)' : 'var(--red)',
+            }}>
+              {formatPnl(unrealizedTotal)}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* PnL breakdown */}
       {pnl && (

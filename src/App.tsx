@@ -80,8 +80,8 @@ export default function App() {
       }}>
         {/* Row 1: Chart + Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 12 }}>
-          <PnlChart trades={tradesQ.data} />
-          <StatsPanel stats={statsQ.data} pnl={pnlQ.data} />
+          <PnlChart trades={tradesQ.data} positions={positionsQ.data} />
+          <StatsPanel stats={statsQ.data} pnl={pnlQ.data} positions={positionsQ.data} />
         </div>
 
         {/* Row 2: Open Positions */}
