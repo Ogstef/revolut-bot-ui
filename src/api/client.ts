@@ -10,14 +10,16 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
   try { return JSON.parse(text) as T; } catch { return text as unknown as T; }
 }
 
-export type StrategyName = 'EMA_CROSSOVER' | 'MACD' | 'BOLLINGER' | 'RSI_MOMENTUM';
-
-export const STRATEGIES: { name: StrategyName; displayName: string }[] = [
-  { name: 'EMA_CROSSOVER', displayName: 'EMA Crossover' },
-  { name: 'MACD',          displayName: 'MACD' },
-  { name: 'BOLLINGER',     displayName: 'Bollinger' },
-  { name: 'RSI_MOMENTUM',  displayName: 'RSI Momentum' },
-];
+export type StrategyName =
+  | 'EMA_CROSSOVER'
+  | 'MACD'
+  | 'BOLLINGER'
+  | 'RSI_MOMENTUM'
+  | 'STOCH_RSI'
+  | 'TRIPLE_EMA'
+  | 'PARABOLIC_SAR'
+  | 'ADX_DI'
+  | 'CCI';
 
 export interface BotStatus {
   running: boolean;

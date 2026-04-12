@@ -1,5 +1,5 @@
-import type { StrategyName, StrategyInfo } from '../api/client';
-import { STRATEGIES } from '../api/client';
+import type { StrategyInfo } from '../api/client';
+import { KNOWN_STRATEGIES } from '../utils/strategyMeta';
 import { usePair } from '../context/PairContext';
 import StrategyHeader from '../components/strategy/StrategyHeader';
 import OpenPositions from '../components/strategy/OpenPositions';
@@ -8,17 +8,22 @@ import PnlBreakdown from '../components/strategy/PnlBreakdown';
 import StrategyPnlChart from '../components/strategy/StrategyPnlChart';
 import SignalHistory from '../components/strategy/SignalHistory';
 import { useStrategyDetail } from '../hooks/useStrategyDetail';
+import type { StrategyName } from '../api/client';
 
 interface Props {
-  strategyName: StrategyName;
+  strategyName: string;
   strategyInfoList?: StrategyInfo[];
 }
 
 export default function StrategyPage({ strategyName, strategyInfoList }: Props) {
   const { selectedPair } = usePair();
-  const { positions, trades, stats, pnl, signals } = useStrategyDetail(strategyName, selectedPair);
+  const { positions, trades, stats, pnl, signals } = useStrategyDetail(strategyName as StrategyName, selectedPair);
+
   const info = strategyInfoList?.find(s => s.name === strategyName);
-  const displayName = STRATEGIES.find(s => s.name === strategyName)?.displayName ?? strategyName;
+  const displayName =
+    info?.displayName ??
+    KNOWN_STRATEGIES.find(s => s.name === strategyName)?.displayName ??
+    strategyName;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -51,8 +56,12 @@ export default function StrategyPage({ strategyName, strategyInfoList }: Props) 
         <PnlBreakdown pnl={pnl.data} isLoading={pnl.isLoading} />
       </div>
 
-      {/* Row 3: Signal history */}
-      <SignalHistory signals={signals.data} isLoading={signals.isLoading} />
+      {/* Row 3: Signal history — strategy-aware columns */}
+      <SignalHistory
+        signals={signals.data}
+        isLoading={signals.isLoading}
+        strategyName={strategyName}
+      />
     </div>
   );
 }

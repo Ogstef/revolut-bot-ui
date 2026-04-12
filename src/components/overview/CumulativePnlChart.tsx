@@ -1,23 +1,17 @@
 import { useState } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, ReferenceLine, Legend,
+  Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
-import type { Trade, StrategyName } from '../../api/client';
-import { STRATEGIES } from '../../api/client';
+import type { Trade } from '../../api/client';
+import { strategyColor } from '../../utils/strategyMeta';
 import { formatPnl } from '../../utils/format';
 
 type Range = 'daily' | 'weekly' | 'monthly' | 'all';
 
-const STRATEGY_COLORS: Record<StrategyName, string> = {
-  EMA_CROSSOVER: '#00e676',
-  MACD:          '#4fc3f7',
-  BOLLINGER:     '#ffb800',
-  RSI_MOMENTUM:  '#ff7043',
-};
-
 interface StrategyTrades {
-  name: StrategyName;
+  name: string;
+  displayName?: string;
   trades: Trade[] | undefined;
 }
 
@@ -32,12 +26,9 @@ function toCumulativePnl(trades: Trade[], cutoff: Date): { date: number; pnl: nu
   }));
 }
 
-function mergeTimelines(allSeries: { name: StrategyName; points: { date: number; pnl: number }[] }[]) {
+function mergeTimelines(allSeries: { name: string; points: { date: number; pnl: number }[] }[]) {
   const dateSet = new Set<number>();
-  for (const s of allSeries) {
-    for (const p of s.points) dateSet.add(p.date);
-  }
-
+  for (const s of allSeries) for (const p of s.points) dateSet.add(p.date);
   const sortedDates = Array.from(dateSet).sort((a, b) => a - b);
   const lastPnl: Record<string, number> = {};
 
@@ -54,8 +45,9 @@ function mergeTimelines(allSeries: { name: StrategyName; points: { date: number;
   });
 }
 
-function CustomTooltip({ active, payload, label }: any) {
+function CustomTooltip({ active, payload, label, nameMap }: any) {
   if (!active || !payload?.length) return null;
+  const sorted = [...payload].sort((a, b) => (b.value as number) - (a.value as number));
   return (
     <div style={{
       background: 'var(--bg-elevated)',
@@ -63,11 +55,13 @@ function CustomTooltip({ active, payload, label }: any) {
       borderRadius: 2,
       padding: '8px 12px',
       fontSize: 11,
+      maxWidth: 220,
     }}>
       <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 6 }}>{label}</div>
-      {payload.map((p: any) => (
-        <div key={p.dataKey} style={{ color: p.color, fontWeight: 600, marginBottom: 2 }}>
-          {STRATEGIES.find(s => s.name === p.dataKey)?.displayName}: {formatPnl(p.value)}
+      {sorted.map((p: any) => (
+        <div key={p.dataKey} style={{ color: p.color, fontWeight: 600, marginBottom: 2, display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+          <span style={{ fontSize: 10, opacity: 0.8 }}>{nameMap[p.dataKey] ?? p.dataKey}</span>
+          <span>{formatPnl(p.value)}</span>
         </div>
       ))}
     </div>
@@ -76,6 +70,7 @@ function CustomTooltip({ active, payload, label }: any) {
 
 export default function CumulativePnlChart({ strategyTrades }: { strategyTrades: StrategyTrades[] }) {
   const [range, setRange] = useState<Range>('weekly');
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
 
   const now = new Date();
   const cutoff = new Date();
@@ -84,14 +79,21 @@ export default function CumulativePnlChart({ strategyTrades }: { strategyTrades:
   if (range === 'monthly') cutoff.setMonth(now.getMonth() - 1);
   if (range === 'all')     cutoff.setFullYear(2000);
 
-  const allSeries = strategyTrades.map(s => ({
-    name: s.name,
-    points: toCumulativePnl(s.trades ?? [], cutoff),
-  }));
+  const allSeries = strategyTrades
+    .filter(s => !hidden.has(s.name))
+    .map(s => ({ name: s.name, points: toCumulativePnl(s.trades ?? [], cutoff) }));
 
   const data = mergeTimelines(allSeries);
+  const nameMap = Object.fromEntries(strategyTrades.map(s => [s.name, s.displayName ?? s.name]));
   const ranges: Range[] = ['daily', 'weekly', 'monthly', 'all'];
-  const hasData = data.length > 0;
+
+  function toggleHide(name: string) {
+    setHidden(prev => {
+      const next = new Set(prev);
+      next.has(name) ? next.delete(name) : next.add(name);
+      return next;
+    });
+  }
 
   return (
     <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
@@ -116,8 +118,38 @@ export default function CumulativePnlChart({ strategyTrades }: { strategyTrades:
         </div>
       </div>
 
+      {/* Strategy toggle pills */}
+      <div style={{ padding: '8px 14px', borderBottom: '1px solid var(--border)', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {strategyTrades.map(s => {
+          const isHidden = hidden.has(s.name);
+          const color = strategyColor(s.name);
+          return (
+            <button
+              key={s.name}
+              onClick={() => toggleHide(s.name)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '2px 8px',
+                background: isHidden ? 'transparent' : `${color}18`,
+                border: `1px solid ${isHidden ? 'var(--border)' : color}`,
+                borderRadius: 2,
+                color: isHidden ? 'var(--text-muted)' : color,
+                fontFamily: 'var(--font-mono)',
+                fontSize: 10,
+                cursor: 'pointer',
+                opacity: isHidden ? 0.4 : 1,
+                transition: 'all 0.15s',
+              }}
+            >
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: isHidden ? 'var(--text-muted)' : color, flexShrink: 0 }} />
+              {s.displayName ?? s.name}
+            </button>
+          );
+        })}
+      </div>
+
       <div style={{ flex: 1, padding: '12px 4px 8px 0', minHeight: 220 }}>
-        {!hasData ? (
+        {data.length === 0 ? (
           <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
             No trades in this range
           </div>
@@ -137,18 +169,14 @@ export default function CumulativePnlChart({ strategyTrades }: { strategyTrades:
                 tickFormatter={v => `€${v}`}
                 width={52}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip nameMap={nameMap} />} />
               <ReferenceLine y={0} stroke="var(--border-bright)" strokeDasharray="3 3" />
-              <Legend
-                wrapperStyle={{ fontSize: 10, fontFamily: 'var(--font-mono)', paddingTop: 8 }}
-                formatter={(value) => STRATEGIES.find(s => s.name === value)?.displayName ?? value}
-              />
-              {STRATEGIES.map(s => (
+              {allSeries.map(s => (
                 <Line
                   key={s.name}
                   type="monotone"
                   dataKey={s.name}
-                  stroke={STRATEGY_COLORS[s.name]}
+                  stroke={strategyColor(s.name)}
                   strokeWidth={1.5}
                   dot={false}
                   activeDot={{ r: 3 }}

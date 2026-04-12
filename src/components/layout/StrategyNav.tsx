@@ -1,7 +1,7 @@
-import type { StrategyName, StrategyInfo } from '../../api/client';
-import { STRATEGIES } from '../../api/client';
+import type { StrategyInfo } from '../../api/client';
+import { KNOWN_STRATEGIES } from '../../utils/strategyMeta';
 
-type Tab = 'overview' | StrategyName;
+type Tab = string; // 'overview' | strategy name
 
 interface Props {
   activeTab: Tab;
@@ -10,6 +10,12 @@ interface Props {
 }
 
 export default function StrategyNav({ activeTab, onTabChange, strategies }: Props) {
+  // Use live strategy list from API; fall back to known list while loading
+  const tabs: { name: string; displayName: string }[] =
+    strategies && strategies.length > 0
+      ? strategies.map(s => ({ name: s.name, displayName: s.displayName }))
+      : KNOWN_STRATEGIES;
+
   const strategyMap = new Map(strategies?.map(s => [s.name, s]));
 
   return (
@@ -22,6 +28,7 @@ export default function StrategyNav({ activeTab, onTabChange, strategies }: Prop
       gap: 2,
       flexShrink: 0,
       overflowX: 'auto',
+      scrollbarWidth: 'none',
     }}>
       <NavTab
         label="Overview"
@@ -29,19 +36,17 @@ export default function StrategyNav({ activeTab, onTabChange, strategies }: Prop
         onClick={() => onTabChange('overview')}
       />
 
-      <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 8px', flexShrink: 0 }} />
+      <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 6px', flexShrink: 0 }} />
 
-      {STRATEGIES.map(s => {
+      {tabs.map(s => {
         const info = strategyMap.get(s.name);
-        const hasCircuitBreaker = info?.circuitBreakerActive ?? false;
         return (
           <NavTab
             key={s.name}
             label={s.displayName}
             active={activeTab === s.name}
             onClick={() => onTabChange(s.name)}
-            badge={hasCircuitBreaker ? 'CB' : undefined}
-            badgeCls={hasCircuitBreaker ? 'badge-red' : undefined}
+            circuitBreaker={info?.circuitBreakerActive ?? false}
             pnl={info?.dailyPnl}
           />
         );
@@ -51,13 +56,12 @@ export default function StrategyNav({ activeTab, onTabChange, strategies }: Prop
 }
 
 function NavTab({
-  label, active, onClick, badge, badgeCls, pnl,
+  label, active, onClick, circuitBreaker, pnl,
 }: {
   label: string;
   active: boolean;
   onClick: () => void;
-  badge?: string;
-  badgeCls?: string;
+  circuitBreaker?: boolean;
   pnl?: number;
 }) {
   const pnlColor = pnl == null ? undefined : pnl >= 0 ? 'var(--green)' : 'var(--red)';
@@ -68,8 +72,8 @@ function NavTab({
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 6,
-        padding: '10px 14px',
+        gap: 5,
+        padding: '10px 12px',
         background: 'transparent',
         border: 'none',
         borderBottom: active ? '2px solid var(--green)' : '2px solid transparent',
@@ -77,7 +81,7 @@ function NavTab({
         fontFamily: 'var(--font-mono)',
         fontSize: 11,
         fontWeight: active ? 600 : 400,
-        letterSpacing: '0.06em',
+        letterSpacing: '0.05em',
         textTransform: 'uppercase',
         cursor: 'pointer',
         whiteSpace: 'nowrap',
@@ -87,7 +91,9 @@ function NavTab({
       }}
     >
       {label}
-      {badge && <span className={`badge ${badgeCls}`} style={{ fontSize: 9, padding: '1px 5px' }}>{badge}</span>}
+      {circuitBreaker && (
+        <span className="badge badge-red animate-blink" style={{ fontSize: 8, padding: '1px 4px' }}>CB</span>
+      )}
       {pnl != null && (
         <span style={{ fontSize: 10, color: pnlColor, fontWeight: 600 }}>
           {pnl >= 0 ? '+' : ''}{pnl.toFixed(1)}€

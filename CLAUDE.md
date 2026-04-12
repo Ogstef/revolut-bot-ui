@@ -28,14 +28,38 @@ npx shadcn@latest init
 
 ## Strategies
 
-4 strategies. These are the exact string values used as path params in `/api/strategies/{name}`:
+9 strategies total. These are the exact string values used as path params in `/api/strategies/{name}`.
+Fetch the live list from `GET /api/strategies` — do NOT hardcode the array.
 
-| Path param | Display name | Logic |
+| Path param | Display name | Logic summary |
 |---|---|---|
 | `EMA_CROSSOVER` | EMA Crossover | EMA(9) crosses EMA(21) + RSI filter |
 | `MACD` | MACD | MACD histogram crosses zero |
 | `BOLLINGER` | Bollinger Bands | Price bounces off upper/lower bands |
 | `RSI_MOMENTUM` | RSI Momentum | RSI crosses 30 (oversold) or 70 (overbought) |
+| `STOCH_RSI` | Stochastic RSI | StochRSI crosses 20 (oversold) or 80 (overbought) |
+| `TRIPLE_EMA` | Triple EMA | EMA5 > EMA13 > EMA34 full alignment |
+| `PARABOLIC_SAR` | Parabolic SAR | Price flips above/below the SAR trailing dot |
+| `ADX_DI` | ADX + DI | +DI/-DI crossover only when ADX > 25 (strong trend) |
+| `CCI` | CCI | CCI crosses −100 (oversold) or +100 (overbought) |
+
+### Strategy indicator field mapping
+
+Each strategy repurposes the `emaShort`, `emaLong`, and `rsi` fields on the signal object to carry its most relevant indicator values. The UI must display these differently per strategy — use the table below to know what each field actually means:
+
+| Strategy | `emaShort` | `emaLong` | `rsi` |
+|---|---|---|---|
+| `EMA_CROSSOVER` | EMA9 | EMA21 | RSI(14) |
+| `MACD` | MACD line | Signal line | Histogram |
+| `BOLLINGER` | Upper band | Lower band | %B (0–100) |
+| `RSI_MOMENTUM` | — | — | RSI(14) |
+| `STOCH_RSI` | StochRSI × 100 | — | Underlying RSI |
+| `TRIPLE_EMA` | EMA5 | EMA34 | EMA13 (middle) |
+| `PARABOLIC_SAR` | SAR value | — | Price−SAR distance % |
+| `ADX_DI` | +DI | −DI | ADX ← show this prominently |
+| `CCI` | — | — | CCI value (can be outside 0–100) |
+
+Use a `getIndicatorLabels(strategyName)` helper function that returns display labels for each field so the signal history table and strategy header show the right column names.
 
 ---
 
@@ -58,48 +82,58 @@ The selected pair is global UI state — a dropdown in the header. Every data qu
 ## Page Layout
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│  NAV: [Overview] [EMA Crossover] [MACD] [Bollinger] [RSI Momentum]  │
-│       Pair: [BTC-EUR ▼]                  ● RUNNING  [STOP][RESUME]  │
-└──────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────┐
+│  Pair: [BTC-EUR ▼]   ● RUNNING   [STOP] [RESUME]                          │
+│  NAV: [Overview] [EMA] [MACD] [Bollinger] [RSI] [StochRSI] [3-EMA] [SAR]  │
+│       [ADX] [CCI]                                                           │
+└────────────────────────────────────────────────────────────────────────────┘
 ```
+
+With 9 strategy tabs the nav will overflow on small screens — use a scrollable horizontal tab bar or a tab dropdown (shadcn `Select`) that collapses the strategy list on mobile.
 
 The **pair dropdown** lives in the header, always visible. Changing the pair re-fetches all data on the current tab. Store selected pair in React state (or URL query param so it's bookmarkable).
 
 Two top-level views:
-- **Overview** — all 4 strategies for the selected pair, side by side
+- **Overview** — all 9 strategies for the selected pair, side by side
 - **Strategy tabs** — one tab per strategy, scoped to the selected pair
 
 ---
 
 ## Page 1 — Overview (default landing)
 
-Compares all 4 strategies for the currently selected pair.
+Compares all 9 strategies for the currently selected pair.
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│  HEADER — BTC-EUR | PAPER | ● RUNNING | [STOP] [RESUME]         │
-│  Pair: [BTC-EUR ▼]  Daily PnL (all): -€12.50 | CBs active: 0/4 │
-├──────────────┬───────────────┬──────────────┬───────────────────┤
-│ EMA CROSSOVER│     MACD      │  BOLLINGER   │   RSI MOMENTUM    │
-│ Daily: +€8.2 │ Daily: -€4.1  │ Daily: +€2.0 │ Daily: -€18.6    │
-│ Open: 1 pos  │ Open: 0 pos   │ Open: 2 pos  │ Open: 0 pos       │
-│ Win rate: 63%│ Win rate: 58% │ Win rate: 55%│ Win rate: 40%     │
-│ ● OK         │ ● OK          │ ● OK         │ ⚠ CIRCUIT BREAK   │
-├──────────────┴───────────────┴──────────────┴───────────────────┤
-│  CUMULATIVE PNL CHART — 4 lines, one per strategy                │
-│  X axis: time  Y axis: €  Toggle: All time | Monthly | Weekly   │
-│  Computed from trade history (running sum of pnl by executedAt) │
-├──────────────────────────────────────────────────────────────────┤
-│  SIGNAL FREQUENCY — grouped bar chart                            │
-│  X axis: strategy  Y axis: count  Groups: BUY / SELL / HOLD     │
-│  Source: GET /api/signals/summary?pair={pair}                   │
-└──────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────┐
+│  BTC-EUR | PAPER | ● RUNNING | [STOP] [RESUME]                    │
+│  Daily PnL (all): -€12.50 | Circuit breakers active: 1/9         │
+├──────────────────────────────────────────────────────────────────  │
+│  STRATEGY CARDS — 3×3 grid (or 2 rows of 4+5)                     │
+│  Each card shows:                                                  │
+│    Strategy name | Daily PnL | Open positions                     │
+│    Win rate | ● OK or ⚠ CIRCUIT BREAK                             │
+├────────────────────────────────────────────────────────────────────┤
+│  CUMULATIVE PNL CHART                                              │
+│  9 lines, one per strategy — use distinct colours                  │
+│  Toggle: All time | Monthly | Weekly                               │
+│  Tip: add a legend with checkboxes to show/hide individual lines  │
+│  (9 lines on one chart is busy — hide/show helps readability)     │
+├────────────────────────────────────────────────────────────────────┤
+│  SIGNAL FREQUENCY — grouped bar chart                              │
+│  X axis: strategy (abbreviated)  Y axis: count                    │
+│  Groups: BUY (green) / SELL (red) / HOLD (grey)                   │
+│  Source: GET /api/signals/summary?pair={pair}                     │
+├────────────────────────────────────────────────────────────────────┤
+│  LEADERBOARD TABLE — sortable by any column                        │
+│  Strategy | Total trades | Win rate | Total PnL | Expectancy      │
+│  Highlight the top performer row in each column                   │
+│  Source: GET /api/strategies/{name}/stats for each strategy       │
+└────────────────────────────────────────────────────────────────────┘
 ```
 
 **Data sources:**
-- Strategy cards: `GET /api/strategies?pair={pair}` (poll 15s)
-- Cumulative PnL chart: `GET /api/strategies/{name}/trades?pair={pair}&limit=500` for all 4, compute running sum on frontend
+- Strategy cards + leaderboard: `GET /api/strategies?pair={pair}` + `GET /api/strategies/{name}/stats?pair={pair}` for all 9 (poll 30s)
+- Cumulative PnL chart: `GET /api/strategies/{name}/trades?pair={pair}&limit=500` for all 9, compute running sum on frontend
 - Signal chart: `GET /api/signals/summary?pair={pair}` (poll 60s)
 
 ---
@@ -403,32 +437,74 @@ src/
 ├── components/
 │   ├── layout/
 │   │   ├── Header.tsx          # pair dropdown + bot status + stop/resume
-│   │   └── StrategyNav.tsx     # Overview + 4 strategy tabs
+│   │   └── StrategyNav.tsx     # Overview + scrollable strategy tabs (9 tabs)
 │   ├── overview/
 │   │   ├── StrategyCard.tsx         # one card per strategy
-│   │   ├── CumulativePnlChart.tsx   # 4 lines from trade history
-│   │   └── SignalFrequencyChart.tsx # grouped bar chart
+│   │   ├── CumulativePnlChart.tsx   # 9 lines with show/hide legend checkboxes
+│   │   ├── SignalFrequencyChart.tsx # grouped bar chart
+│   │   └── LeaderboardTable.tsx     # sortable strategy comparison table
 │   ├── strategy/
 │   │   ├── StrategyHeader.tsx    # win rate, expectancy, daily PnL
 │   │   ├── OpenPositions.tsx     # table + TP/SL progress bars
 │   │   ├── TradesTable.tsx       # exit reason badges, colour by PnL
 │   │   ├── PnlBreakdown.tsx      # day/week/month/all-time cards
-│   │   ├── StrategyPnlChart.tsx  # single line cumulative PnL
-│   │   └── SignalHistory.tsx     # recent signals table
+│   │   ├── StrategyPnlChart.tsx  # single cumulative PnL line
+│   │   └── SignalHistory.tsx     # recent signals with strategy-aware indicator columns
 │   └── config/
 │       └── ConfigPanel.tsx       # form → POST /api/config
 ├── hooks/
 │   ├── usePairs.ts
 │   ├── useBotStatus.ts
-│   ├── useStrategies.ts          # overview data
+│   ├── useStrategies.ts          # overview data — all 9 strategies
 │   └── useStrategyDetail.ts      # all detail tab data for one strategy+pair
+├── utils/
+│   ├── format.ts                 # EUR formatting, PnL colour, cumulative PnL
+│   └── strategyMeta.ts           # indicator label mapping (see below)
 ├── pages/
 │   ├── OverviewPage.tsx
-│   └── StrategyPage.tsx          # rendered for each of the 4 tabs
+│   └── StrategyPage.tsx          # rendered for each of the 9 tabs
 ├── context/
 │   └── PairContext.tsx            # selectedPair state + setter, wraps the whole app
 └── App.tsx
 ```
+
+---
+
+## `strategyMeta.ts` — indicator label helper
+
+Each strategy repurposes the `emaShort`, `emaLong`, `rsi` fields differently. Use this helper so `SignalHistory` and `StrategyHeader` always show the right column names and values:
+
+```ts
+export type IndicatorMeta = {
+  emaShortLabel: string | null   // null = don't display this field
+  emaLongLabel:  string | null
+  rsiLabel:      string | null
+}
+
+const META: Record<string, IndicatorMeta> = {
+  EMA_CROSSOVER:  { emaShortLabel: 'EMA9',      emaLongLabel: 'EMA21',    rsiLabel: 'RSI' },
+  MACD:           { emaShortLabel: 'MACD',       emaLongLabel: 'Signal',   rsiLabel: 'Histogram' },
+  BOLLINGER:      { emaShortLabel: 'Upper Band', emaLongLabel: 'Lower Band', rsiLabel: '%B' },
+  RSI_MOMENTUM:   { emaShortLabel: null,         emaLongLabel: null,       rsiLabel: 'RSI' },
+  STOCH_RSI:      { emaShortLabel: 'StochRSI',   emaLongLabel: null,       rsiLabel: 'RSI' },
+  TRIPLE_EMA:     { emaShortLabel: 'EMA5',       emaLongLabel: 'EMA34',    rsiLabel: 'EMA13' },
+  PARABOLIC_SAR:  { emaShortLabel: 'SAR',        emaLongLabel: null,       rsiLabel: 'Price−SAR %' },
+  ADX_DI:         { emaShortLabel: '+DI',        emaLongLabel: '−DI',      rsiLabel: 'ADX' },
+  CCI:            { emaShortLabel: null,         emaLongLabel: null,       rsiLabel: 'CCI' },
+}
+
+export function getIndicatorMeta(strategyName: string): IndicatorMeta {
+  return META[strategyName] ?? { emaShortLabel: 'Ind1', emaLongLabel: 'Ind2', rsiLabel: 'Ind3' }
+}
+```
+
+Use this in `SignalHistory` to render column headers and in `StrategyHeader` to label the indicator values displayed next to the current signal.
+
+**Special display notes:**
+- `ADX_DI`: highlight the `rsi` field (ADX value) in **bold** — it's the most important number; < 20 means "no trend", > 25 means "strong trend"
+- `CCI`: the `rsi` field can be outside 0–100 (range is roughly −300 to +300). Don't clamp it. Show with a ± sign.
+- `STOCH_RSI`: the `emaShort` field is already multiplied by 100 (0–100 scale). Display with no decimal places.
+- `TRIPLE_EMA`: all three EMA values (emaShort=EMA5, rsi=EMA13, emaLong=EMA34) should be shown. The alignment direction (bullish/bearish/mixed) is more meaningful than the raw values.
 
 ---
 

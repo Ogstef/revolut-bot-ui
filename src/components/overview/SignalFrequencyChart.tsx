@@ -3,7 +3,7 @@ import {
   Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 import type { SignalSummary } from '../../api/client';
-import { STRATEGIES } from '../../api/client';
+import { KNOWN_STRATEGIES } from '../../utils/strategyMeta';
 
 interface Props {
   signals: SignalSummary[] | undefined;
@@ -11,7 +11,7 @@ interface Props {
 }
 
 function buildChartData(signals: SignalSummary[]) {
-  return STRATEGIES.map(s => {
+  return KNOWN_STRATEGIES.map(s => {
     const forStrategy = signals.filter(sig => sig.strategy === s.name);
     const buy  = forStrategy.find(sig => sig.signalType === 'BUY')?.count  ?? 0;
     const sell = forStrategy.find(sig => sig.signalType === 'SELL')?.count ?? 0;

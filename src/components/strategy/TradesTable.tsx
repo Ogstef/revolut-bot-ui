@@ -14,13 +14,14 @@ const EXIT_LABELS: Record<string, { label: string; cls: string }> = {
 };
 
 export default function TradesTable({ trades, isLoading }: Props) {
-  const rows = trades ?? [];
+  // Only show trades that have actually been closed (have an exit price)
+  const rows = (trades ?? []).filter(t => t.exitPrice != null && t.exitPrice > 0);
 
   return (
     <div className="card" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div className="card-header">
         <span className="label">Recent Trades</span>
-        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{rows.length} shown</span>
+        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{rows.length} closed</span>
       </div>
 
       <div style={{ overflowY: 'auto', flex: 1 }}>
@@ -43,7 +44,7 @@ export default function TradesTable({ trades, isLoading }: Props) {
                 <th>%</th>
                 <th>Exit Reason</th>
                 <th>Mode</th>
-                <th>Closed At</th>
+                <th>Opened At</th>
               </tr>
             </thead>
             <tbody>
@@ -74,7 +75,7 @@ export default function TradesTable({ trades, isLoading }: Props) {
                       </span>
                     </td>
                     <td style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                      {formatDateTime(t.closedAt ?? t.executedAt)}
+                      {formatDateTime(t.executedAt)}
                     </td>
                   </tr>
                 );

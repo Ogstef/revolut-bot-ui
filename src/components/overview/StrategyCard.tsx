@@ -1,10 +1,10 @@
-import type { StrategyInfo, StrategyName } from '../../api/client';
+import type { StrategyInfo } from '../../api/client';
 import { formatPnl } from '../../utils/format';
 
 interface Props {
   info: StrategyInfo;
   winRate?: number;
-  onClick: (name: StrategyName) => void;
+  onClick: (name: string) => void;
 }
 
 export default function StrategyCard({ info, winRate, onClick }: Props) {

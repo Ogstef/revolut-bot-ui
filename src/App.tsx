@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import type { StrategyName } from './api/client';
 import { PairProvider, usePair } from './context/PairContext';
 import { useBotStatus } from './hooks/useBotStatus';
 import { usePairs } from './hooks/usePairs';
@@ -9,14 +8,12 @@ import StrategyNav from './components/layout/StrategyNav';
 import OverviewPage from './pages/OverviewPage';
 import StrategyPage from './pages/StrategyPage';
 
-type Tab = 'overview' | StrategyName;
-
 function AppInner() {
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const [activeTab, setActiveTab] = useState<string>('overview');
 
   const { selectedPair, setSelectedPair } = usePair();
-  const statusQ = useBotStatus();
-  const pairsQ = usePairs();
+  const statusQ    = useBotStatus();
+  const pairsQ     = usePairs();
   const strategiesQ = useStrategies(selectedPair);
 
   const backendDown = statusQ.isError && !statusQ.isFetching;
@@ -34,10 +31,7 @@ function AppInner() {
         isLoading={statusQ.isLoading}
         pairs={pairsQ.data ?? []}
         selectedPair={selectedPair}
-        onPairChange={pair => {
-          setSelectedPair(pair);
-          // Stay on same tab — queries auto re-fetch due to pair in query key
-        }}
+        onPairChange={setSelectedPair}
       />
       <StrategyNav
         activeTab={activeTab}
@@ -59,13 +53,9 @@ function AppInner() {
         </div>
       )}
 
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: '14px 16px',
-      }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
         {activeTab === 'overview' ? (
-          <OverviewPage onStrategyClick={name => setActiveTab(name)} />
+          <OverviewPage onStrategyClick={setActiveTab} />
         ) : (
           <StrategyPage
             strategyName={activeTab}
