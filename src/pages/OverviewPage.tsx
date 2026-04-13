@@ -57,8 +57,8 @@ export default function OverviewPage({ onStrategyClick }: Props) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {/* Strategy cards — 3×3 grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+      {/* Strategy cards — 4 per row for 12 strategies, 3 per row for ≤9 */}
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cardList.length > 9 ? 4 : 3}, 1fr)`, gap: 12 }}>
         {cardList.map(info => (
           <StrategyCard
             key={info.name}

@@ -7,6 +7,7 @@ import Header from './components/layout/Header';
 import StrategyNav from './components/layout/StrategyNav';
 import OverviewPage from './pages/OverviewPage';
 import StrategyPage from './pages/StrategyPage';
+import PortfolioPage from './pages/PortfolioPage';
 
 function AppInner() {
   const [activeTab, setActiveTab] = useState<string>('overview');
@@ -33,11 +34,6 @@ function AppInner() {
         selectedPair={selectedPair}
         onPairChange={setSelectedPair}
       />
-      <StrategyNav
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        strategies={strategiesQ.data}
-      />
 
       {backendDown && (
         <div style={{
@@ -53,15 +49,25 @@ function AppInner() {
         </div>
       )}
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
-        {activeTab === 'overview' ? (
-          <OverviewPage onStrategyClick={setActiveTab} />
-        ) : (
-          <StrategyPage
-            strategyName={activeTab}
-            strategyInfoList={strategiesQ.data}
-          />
-        )}
+      {/* Sidebar + content */}
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        <StrategyNav
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          strategies={strategiesQ.data}
+        />
+        <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
+          {activeTab === 'overview' ? (
+            <OverviewPage onStrategyClick={setActiveTab} />
+          ) : activeTab === 'portfolio' ? (
+            <PortfolioPage />
+          ) : (
+            <StrategyPage
+              strategyName={activeTab}
+              strategyInfoList={strategiesQ.data}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

@@ -14,13 +14,16 @@ const META: Record<string, IndicatorMeta> = {
   PARABOLIC_SAR:  { emaShortLabel: 'SAR',         emaLongLabel: null,         rsiLabel: 'Price−SAR %'},
   ADX_DI:         { emaShortLabel: '+DI',         emaLongLabel: '−DI',        rsiLabel: 'ADX'        },
   CCI:            { emaShortLabel: null,          emaLongLabel: null,         rsiLabel: 'CCI'        },
+  MFI:            { emaShortLabel: null,          emaLongLabel: null,         rsiLabel: 'MFI'        },
+  DONCHIAN:       { emaShortLabel: 'Upper',       emaLongLabel: 'Lower',      rsiLabel: 'Width %'    },
+  ICHIMOKU:       { emaShortLabel: 'Tenkan',      emaLongLabel: 'Kijun',      rsiLabel: 'Span A'     },
 };
 
 export function getIndicatorMeta(strategyName: string): IndicatorMeta {
   return META[strategyName] ?? { emaShortLabel: 'Ind1', emaLongLabel: 'Ind2', rsiLabel: 'Ind3' };
 }
 
-// Distinct colours for up to 9 strategy lines on the chart
+// Distinct colours for up to 12 strategy lines on the chart
 export const STRATEGY_COLORS: Record<string, string> = {
   EMA_CROSSOVER:  '#00e676',
   MACD:           '#4fc3f7',
@@ -31,6 +34,9 @@ export const STRATEGY_COLORS: Record<string, string> = {
   PARABOLIC_SAR:  '#f48fb1',
   ADX_DI:         '#fff176',
   CCI:            '#ef5350',
+  MFI:            '#a5d6a7',
+  DONCHIAN:       '#90caf9',
+  ICHIMOKU:       '#ffcc80',
 };
 
 export function strategyColor(name: string): string {
@@ -48,4 +54,7 @@ export const KNOWN_STRATEGIES: { name: string; displayName: string }[] = [
   { name: 'PARABOLIC_SAR',  displayName: 'Parabolic SAR'   },
   { name: 'ADX_DI',         displayName: 'ADX + DI'        },
   { name: 'CCI',            displayName: 'CCI'             },
+  { name: 'MFI',            displayName: 'Money Flow'      },
+  { name: 'DONCHIAN',       displayName: 'Donchian'        },
+  { name: 'ICHIMOKU',       displayName: 'Ichimoku'        },
 ];

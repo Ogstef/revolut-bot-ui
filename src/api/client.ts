@@ -19,7 +19,10 @@ export type StrategyName =
   | 'TRIPLE_EMA'
   | 'PARABOLIC_SAR'
   | 'ADX_DI'
-  | 'CCI';
+  | 'CCI'
+  | 'MFI'
+  | 'DONCHIAN'
+  | 'ICHIMOKU';
 
 export interface BotStatus {
   running: boolean;
