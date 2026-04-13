@@ -50,7 +50,7 @@ function AppInner() {
           color: 'var(--red)',
           flexShrink: 0,
         }}>
-          ✗ Cannot reach backend at localhost:8089 — is the Spring Boot server running?
+          ✗ Cannot reach backend — is the trading bot service running?
         </div>
       )}
 
