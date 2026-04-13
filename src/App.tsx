@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { PairProvider, usePair } from './context/PairContext';
 import { useBotStatus } from './hooks/useBotStatus';
 import { usePairs } from './hooks/usePairs';
+import { useIntervals } from './hooks/useIntervals';
 import { useStrategies } from './hooks/useStrategies';
 import Header from './components/layout/Header';
 import StrategyNav from './components/layout/StrategyNav';
@@ -12,10 +13,11 @@ import PortfolioPage from './pages/PortfolioPage';
 function AppInner() {
   const [activeTab, setActiveTab] = useState<string>('overview');
 
-  const { selectedPair, setSelectedPair } = usePair();
-  const statusQ    = useBotStatus();
-  const pairsQ     = usePairs();
-  const strategiesQ = useStrategies(selectedPair);
+  const { selectedPair, setSelectedPair, selectedInterval, setSelectedInterval } = usePair();
+  const statusQ     = useBotStatus();
+  const pairsQ      = usePairs();
+  const intervalsQ  = useIntervals();
+  const strategiesQ = useStrategies(selectedPair, selectedInterval);
 
   const backendDown = statusQ.isError && !statusQ.isFetching;
 
@@ -33,6 +35,9 @@ function AppInner() {
         pairs={pairsQ.data ?? []}
         selectedPair={selectedPair}
         onPairChange={setSelectedPair}
+        intervals={intervalsQ.data ?? []}
+        selectedInterval={selectedInterval}
+        onIntervalChange={setSelectedInterval}
       />
 
       {backendDown && (

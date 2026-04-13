@@ -16,8 +16,8 @@ interface Props {
 }
 
 export default function StrategyPage({ strategyName, strategyInfoList }: Props) {
-  const { selectedPair } = usePair();
-  const { positions, trades, stats, pnl, signals } = useStrategyDetail(strategyName as StrategyName, selectedPair);
+  const { selectedPair, selectedInterval } = usePair();
+  const { positions, trades, stats, pnl, signals } = useStrategyDetail(strategyName as StrategyName, selectedPair, selectedInterval);
 
   const info = strategyInfoList?.find(s => s.name === strategyName);
   const displayName =
@@ -35,6 +35,10 @@ export default function StrategyPage({ strategyName, strategyInfoList }: Props) 
         <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>—</span>
         <span style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 600, color: 'var(--blue)' }}>
           {selectedPair.replace('-', '/')}
+        </span>
+        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>—</span>
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 600, color: 'var(--amber)' }}>
+          {selectedInterval}
         </span>
         {info?.circuitBreakerActive && (
           <span className="badge badge-red animate-blink">⚠ Circuit Breaker Active</span>

@@ -5,6 +5,7 @@ import StrategyCard from '../components/overview/StrategyCard';
 import CumulativePnlChart from '../components/overview/CumulativePnlChart';
 import SignalFrequencyChart from '../components/overview/SignalFrequencyChart';
 import LeaderboardTable from '../components/overview/LeaderboardTable';
+import IntervalComparisonChart from '../components/overview/IntervalComparisonChart';
 import ConfigPanel from '../components/config/ConfigPanel';
 import { useStrategies, useAllStrategyTrades, useAllStrategyStats, useSignalSummary } from '../hooks/useStrategies';
 
@@ -13,8 +14,8 @@ interface Props {
 }
 
 export default function OverviewPage({ onStrategyClick }: Props) {
-  const { selectedPair } = usePair();
-  const strategiesQ = useStrategies(selectedPair);
+  const { selectedPair, selectedInterval } = usePair();
+  const strategiesQ = useStrategies(selectedPair, selectedInterval);
 
   // Derive the strategy name list — use API data when available, fallback to known list
   const strategyNames: string[] =
@@ -22,9 +23,9 @@ export default function OverviewPage({ onStrategyClick }: Props) {
       ? strategiesQ.data.map(s => s.name)
       : KNOWN_STRATEGIES.map(s => s.name);
 
-  const allTrades = useAllStrategyTrades(selectedPair, strategyNames);
-  const allStats  = useAllStrategyStats(selectedPair, strategyNames);
-  const signalsQ  = useSignalSummary(selectedPair);
+  const allTrades = useAllStrategyTrades(selectedPair, strategyNames, selectedInterval);
+  const allStats  = useAllStrategyStats(selectedPair, strategyNames, selectedInterval);
+  const signalsQ  = useSignalSummary(selectedPair, selectedInterval);
 
   const strategies: StrategyInfo[] = strategiesQ.data ?? [];
   const statsMap = new Map(allStats.map(s => [s.name, s.query.data]));
@@ -80,12 +81,15 @@ export default function OverviewPage({ onStrategyClick }: Props) {
         <LeaderboardTable rows={leaderboardRows} />
       )}
 
+      {/* Cross-interval comparison */}
+      <IntervalComparisonChart />
+
       {/* Config */}
       <ConfigPanel />
 
       <div style={{ padding: '8px 0 4px', textAlign: 'center' }}>
         <span style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.1em' }}>
-          REVOLUT TRADING BOT — {strategyNames.length} STRATEGIES × MULTI-PAIR — AUTO-REFRESH
+          REVOLUT TRADING BOT — {strategyNames.length} STRATEGIES × MULTI-PAIR × MULTI-INTERVAL ({selectedInterval}) — AUTO-REFRESH
         </span>
       </div>
     </div>

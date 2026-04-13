@@ -47,6 +47,7 @@ export interface StrategyInfo {
 export interface Position {
   id: number;
   pair: string;
+  interval?: string;
   side: 'BUY' | 'SELL';
   entryPrice: number;
   quantity: number;
@@ -62,6 +63,7 @@ export interface Position {
 export interface Trade {
   id: number;
   pair: string;
+  interval?: string;
   side: 'BUY' | 'SELL';
   entryPrice: number;
   exitPrice: number;
@@ -101,6 +103,12 @@ export interface PairInfo {
   quoteAsset: string;
 }
 
+export interface IntervalInfo {
+  minutes: number;
+  label: string;        // "15m", "1h", "4h", "1d"
+  displayName: string;  // "15 min", "1 hour", "4 hours", "1 day"
+}
+
 export interface SignalSummary {
   strategy: StrategyName;
   signalType: 'BUY' | 'SELL' | 'HOLD';
@@ -110,6 +118,7 @@ export interface SignalSummary {
 export interface Signal {
   id: number;
   pair: string;
+  interval?: string;
   strategyName: StrategyName;
   signalType: 'BUY' | 'SELL' | 'HOLD';
   confidence: number;
@@ -119,6 +128,12 @@ export interface Signal {
   rsi?: number;
   currentPrice: number;
   createdAt: string;
+}
+
+export interface FearGreed {
+  value: number;           // 0–100
+  classification: string;  // "Extreme Fear" | "Fear" | "Neutral" | "Greed" | "Extreme Greed"
+  timestamp: number;       // unix epoch seconds
 }
 
 export interface ConfigUpdate {

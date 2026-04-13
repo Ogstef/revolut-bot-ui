@@ -3,42 +3,42 @@ import { fetchPositions, fetchTrades, fetchStats, fetchPnl } from '../api/strate
 import { fetchStrategySignals } from '../api/signals';
 import type { StrategyName } from '../api/client';
 
-export function useStrategyDetail(name: StrategyName, pair: string) {
+export function useStrategyDetail(name: StrategyName, pair: string, interval?: string) {
   const positions = useQuery({
-    queryKey: ['positions', name, pair],
-    queryFn: () => fetchPositions(name, pair),
+    queryKey: ['positions', name, pair, interval],
+    queryFn: () => fetchPositions(name, pair, interval),
     refetchInterval: 15_000,
     refetchIntervalInBackground: false,
     retry: false,
   });
 
   const trades = useQuery({
-    queryKey: ['trades', name, pair],
-    queryFn: () => fetchTrades(name, pair, 50),
+    queryKey: ['trades', name, pair, interval],
+    queryFn: () => fetchTrades(name, pair, 50, interval),
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
     retry: false,
   });
 
   const stats = useQuery({
-    queryKey: ['stats', name, pair],
-    queryFn: () => fetchStats(name, pair),
+    queryKey: ['stats', name, pair, interval],
+    queryFn: () => fetchStats(name, pair, interval),
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,
     retry: false,
   });
 
   const pnl = useQuery({
-    queryKey: ['pnl', name, pair],
-    queryFn: () => fetchPnl(name, pair),
+    queryKey: ['pnl', name, pair, interval],
+    queryFn: () => fetchPnl(name, pair, interval),
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,
     retry: false,
   });
 
   const signals = useQuery({
-    queryKey: ['signals', name, pair],
-    queryFn: () => fetchStrategySignals(name, pair, 20),
+    queryKey: ['signals', name, pair, interval],
+    queryFn: () => fetchStrategySignals(name, pair, 20, interval),
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
     retry: false,

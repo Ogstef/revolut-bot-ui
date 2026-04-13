@@ -15,17 +15,17 @@ export interface StrategyTrades    { name: string; displayName: string; trades: 
 export interface StrategyStats     { name: string; displayName: string; info?: StrategyInfo; stats?: Stats }
 
 export default function PortfolioPage() {
-  const { selectedPair } = usePair();
+  const { selectedPair, selectedInterval } = usePair();
 
-  const strategiesQ = useStrategies(selectedPair);
+  const strategiesQ = useStrategies(selectedPair, selectedInterval);
   const strategyNames: string[] =
     strategiesQ.data?.length
       ? strategiesQ.data.map(s => s.name)
       : KNOWN_STRATEGIES.map(s => s.name);
 
-  const allTrades    = useAllStrategyTrades(selectedPair, strategyNames);
-  const allPositions = useAllStrategyPositions(selectedPair, strategyNames);
-  const allStats     = useAllStrategyStats(selectedPair, strategyNames);
+  const allTrades    = useAllStrategyTrades(selectedPair, strategyNames, selectedInterval);
+  const allPositions = useAllStrategyPositions(selectedPair, strategyNames, selectedInterval);
+  const allStats     = useAllStrategyStats(selectedPair, strategyNames, selectedInterval);
 
   const strategies: StrategyInfo[] = strategiesQ.data ?? [];
 
@@ -82,7 +82,7 @@ export default function PortfolioPage() {
         </span>
         <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>—</span>
         <span style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 600, color: 'var(--blue)' }}>
-          {selectedPair.replace('-', '/')} · All Strategies
+          {selectedPair.replace('-', '/')} · {selectedInterval} · All Strategies
         </span>
       </div>
 
@@ -110,7 +110,7 @@ export default function PortfolioPage() {
 
       <div style={{ padding: '8px 0 4px', textAlign: 'center' }}>
         <span style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.1em' }}>
-          COMBINED VIEW — {strategyNames.length} STRATEGIES — {selectedPair}
+          COMBINED VIEW — {strategyNames.length} STRATEGIES — {selectedPair} @ {selectedInterval}
         </span>
       </div>
     </div>

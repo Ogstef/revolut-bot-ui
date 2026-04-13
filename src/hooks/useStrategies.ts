@@ -3,21 +3,21 @@ import { fetchStrategies, fetchTrades, fetchStats, fetchPositions } from '../api
 import { fetchSignalSummary } from '../api/signals';
 import type { StrategyName } from '../api/client';
 
-export function useStrategies(pair: string) {
+export function useStrategies(pair: string, interval?: string) {
   return useQuery({
-    queryKey: ['strategies', pair],
-    queryFn: () => fetchStrategies(pair),
+    queryKey: ['strategies', pair, interval],
+    queryFn: () => fetchStrategies(pair, interval),
     refetchInterval: 15_000,
     refetchIntervalInBackground: false,
     retry: false,
   });
 }
 
-export function useAllStrategyTrades(pair: string, strategyNames: string[]) {
+export function useAllStrategyTrades(pair: string, strategyNames: string[], interval?: string) {
   const results = useQueries({
     queries: strategyNames.map(name => ({
-      queryKey: ['trades', name, pair],
-      queryFn: () => fetchTrades(name as StrategyName, pair, 500),
+      queryKey: ['trades', name, pair, interval],
+      queryFn: () => fetchTrades(name as StrategyName, pair, 500, interval),
       refetchInterval: 30_000,
       refetchIntervalInBackground: false,
       retry: false,
@@ -26,11 +26,11 @@ export function useAllStrategyTrades(pair: string, strategyNames: string[]) {
   return results.map((result, i) => ({ name: strategyNames[i], query: result }));
 }
 
-export function useAllStrategyStats(pair: string, strategyNames: string[]) {
+export function useAllStrategyStats(pair: string, strategyNames: string[], interval?: string) {
   const results = useQueries({
     queries: strategyNames.map(name => ({
-      queryKey: ['stats', name, pair],
-      queryFn: () => fetchStats(name as StrategyName, pair),
+      queryKey: ['stats', name, pair, interval],
+      queryFn: () => fetchStats(name as StrategyName, pair, interval),
       refetchInterval: 60_000,
       refetchIntervalInBackground: false,
       retry: false,
@@ -39,11 +39,11 @@ export function useAllStrategyStats(pair: string, strategyNames: string[]) {
   return results.map((result, i) => ({ name: strategyNames[i], query: result }));
 }
 
-export function useAllStrategyPositions(pair: string, strategyNames: string[]) {
+export function useAllStrategyPositions(pair: string, strategyNames: string[], interval?: string) {
   const results = useQueries({
     queries: strategyNames.map(name => ({
-      queryKey: ['positions', name, pair],
-      queryFn: () => fetchPositions(name as StrategyName, pair),
+      queryKey: ['positions', name, pair, interval],
+      queryFn: () => fetchPositions(name as StrategyName, pair, interval),
       refetchInterval: 15_000,
       refetchIntervalInBackground: false,
       retry: false,
@@ -52,10 +52,10 @@ export function useAllStrategyPositions(pair: string, strategyNames: string[]) {
   return results.map((result, i) => ({ name: strategyNames[i], query: result }));
 }
 
-export function useSignalSummary(pair: string) {
+export function useSignalSummary(pair: string, interval?: string) {
   return useQuery({
-    queryKey: ['signals-summary', pair],
-    queryFn: () => fetchSignalSummary(pair),
+    queryKey: ['signals-summary', pair, interval],
+    queryFn: () => fetchSignalSummary(pair, interval),
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,
     retry: false,

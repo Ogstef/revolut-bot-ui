@@ -1,7 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { emergencyStop, resume } from '../../api/status';
-import type { BotStatus, PairInfo } from '../../api/client';
+import type { BotStatus, PairInfo, IntervalInfo } from '../../api/client';
 import { formatPnl, formatTime } from '../../utils/format';
+import FearGreedWidget from '../FearGreedWidget';
 
 interface Props {
   status: BotStatus | undefined;
@@ -9,9 +10,15 @@ interface Props {
   pairs: PairInfo[];
   selectedPair: string;
   onPairChange: (pair: string) => void;
+  intervals: IntervalInfo[];
+  selectedInterval: string;
+  onIntervalChange: (interval: string) => void;
 }
 
-export default function Header({ status, isLoading, pairs, selectedPair, onPairChange }: Props) {
+export default function Header({
+  status, isLoading, pairs, selectedPair, onPairChange,
+  intervals, selectedInterval, onIntervalChange,
+}: Props) {
   const qc = useQueryClient();
 
   const stopMut = useMutation({
@@ -63,6 +70,13 @@ export default function Header({ status, isLoading, pairs, selectedPair, onPairC
           onChange={onPairChange}
         />
 
+        {/* Interval dropdown */}
+        <IntervalDropdown
+          intervals={intervals}
+          selected={selectedInterval}
+          onChange={onIntervalChange}
+        />
+
         <span className={`badge ${status?.mode === 'LIVE' ? 'badge-red' : 'badge-amber'}`}>
           {status?.mode ?? '—'}
         </span>
@@ -89,6 +103,8 @@ export default function Header({ status, isLoading, pairs, selectedPair, onPairC
             ? <span className="badge badge-red animate-blink">TRIPPED</span>
             : <span className="badge badge-green">OK</span>
         } />
+        <div style={{ width: 1, height: 28, background: 'var(--border)' }} />
+        <FearGreedWidget />
         {status?.reportedAt && (
           <Metric label="Updated" value={
             <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>
@@ -161,6 +177,49 @@ function PairDropdown({ pairs, selected, onChange }: {
         ))}
       </select>
       {/* Chevron */}
+      <div style={{
+        position: 'absolute', right: 8,
+        fontSize: 9, color: 'var(--text-muted)', pointerEvents: 'none',
+      }}>▼</div>
+    </div>
+  );
+}
+
+function IntervalDropdown({ intervals, selected, onChange }: {
+  intervals: IntervalInfo[];
+  selected: string;
+  onChange: (interval: string) => void;
+}) {
+  return (
+    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+      <div style={{ position: 'absolute', left: 8, fontSize: 10, color: 'var(--text-muted)', pointerEvents: 'none', zIndex: 1 }}>
+        Int
+      </div>
+      <select
+        value={selected}
+        onChange={e => onChange(e.target.value)}
+        style={{
+          background: 'var(--bg-elevated)',
+          border: '1px solid var(--border-bright)',
+          borderRadius: 2,
+          color: 'var(--text-primary)',
+          fontFamily: 'var(--font-display)',
+          fontWeight: 700,
+          fontSize: 14,
+          padding: '4px 28px 4px 32px',
+          cursor: 'pointer',
+          outline: 'none',
+          appearance: 'none',
+          WebkitAppearance: 'none',
+        }}
+      >
+        {intervals.length === 0 && (
+          <option value={selected}>{selected}</option>
+        )}
+        {intervals.map(i => (
+          <option key={i.label} value={i.label}>{i.label}</option>
+        ))}
+      </select>
       <div style={{
         position: 'absolute', right: 8,
         fontSize: 9, color: 'var(--text-muted)', pointerEvents: 'none',

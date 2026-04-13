@@ -1,12 +1,15 @@
 # Revolut Trading Bot — Frontend
 
+> **See also:** Root [`/CLAUDE.md`](../CLAUDE.md) for project-wide context (execution unit, how to run, API overview).
+> Backend-specific instructions are in [`revolut-trading-bot/CLAUDE.md`](../revolut-trading-bot/CLAUDE.md).
+
 ## Overview
 
 React/TypeScript dashboard for the Revolut Trading Bot Spring Boot backend.
 The backend runs on `http://localhost:8089`. All data comes from it — this UI never calls Revolut directly.
 
-**The bot runs 4 strategies × N pairs simultaneously — each combination is an independent virtual portfolio.**
-The UI lets you pick a pair from a dropdown, then browse each strategy's performance in its own tab.
+**The bot runs 12 strategies × N pairs × N intervals simultaneously — each `(pair, strategy, interval)` combination is an independent virtual portfolio.**
+The UI lets you pick a pair and an interval from dropdowns, then browse each strategy's performance in its own tab. A cross-interval comparison view shows the same strategy's performance across different timeframes.
 
 ## Tech Stack
 
@@ -28,7 +31,7 @@ npx shadcn@latest init
 
 ## Strategies
 
-9 strategies total. These are the exact string values used as path params in `/api/strategies/{name}`.
+12 strategies total. These are the exact string values used as path params in `/api/strategies/{name}`.
 Fetch the live list from `GET /api/strategies` — do NOT hardcode the array.
 
 | Path param | Display name | Logic summary |
@@ -42,6 +45,9 @@ Fetch the live list from `GET /api/strategies` — do NOT hardcode the array.
 | `PARABOLIC_SAR` | Parabolic SAR | Price flips above/below the SAR trailing dot |
 | `ADX_DI` | ADX + DI | +DI/-DI crossover only when ADX > 25 (strong trend) |
 | `CCI` | CCI | CCI crosses −100 (oversold) or +100 (overbought) |
+| `MFI` | Money Flow Index | Volume-weighted RSI, crosses 20 or 80 |
+| `DONCHIAN` | Donchian Breakout | Price breaks above/below 20-bar channel |
+| `ICHIMOKU` | Ichimoku Cloud | Multi-condition: TK cross + cloud + price position |
 
 ### Strategy indicator field mapping
 
@@ -58,6 +64,9 @@ Each strategy repurposes the `emaShort`, `emaLong`, and `rsi` fields on the sign
 | `PARABOLIC_SAR` | SAR value | — | Price−SAR distance % |
 | `ADX_DI` | +DI | −DI | ADX ← show this prominently |
 | `CCI` | — | — | CCI value (can be outside 0–100) |
+| `MFI` | — | — | MFI value (0–100, display like RSI) |
+| `DONCHIAN` | Upper channel | Lower channel | Channel width % |
+| `ICHIMOKU` | Tenkan-sen | Kijun-sen | Span A |
 
 Use a `getIndicatorLabels(strategyName)` helper function that returns display labels for each field so the signal history table and strategy header show the right column names.
 
@@ -79,29 +88,45 @@ The selected pair is global UI state — a dropdown in the header. Every data qu
 
 ---
 
+## Intervals
+
+Fetched dynamically from `GET /api/intervals`. Do NOT hardcode interval values.
+Typical response:
+```json
+[
+  { "minutes": 15, "label": "15m", "displayName": "15 min" },
+  { "minutes": 60, "label": "1h",  "displayName": "1 hour" }
+]
+```
+
+The selected interval is global UI state — a dropdown in the header next to the pair selector. Every data query uses the currently selected interval as an `?interval=` query param. When changing interval, all data re-fetches automatically (interval is part of every React Query key).
+
+---
+
 ## Page Layout
 
 ```
-┌────────────────────────────────────────────────────────────────────────────┐
-│  Pair: [BTC-EUR ▼]   ● RUNNING   [STOP] [RESUME]                          │
-│  NAV: [Overview] [EMA] [MACD] [Bollinger] [RSI] [StochRSI] [3-EMA] [SAR]  │
-│       [ADX] [CCI]                                                           │
-└────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│  Pair: [BTC-EUR ▼]  Interval: [15m ▼]   ● RUNNING   [STOP] [RESUME]            │
+│  NAV: [Overview] [Portfolio] [EMA] [MACD] [Bollinger] [RSI] [StochRSI] [3-EMA]  │
+│       [SAR] [ADX] [CCI] [MFI] [Donchian] [Ichimoku]                             │
+└──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-With 9 strategy tabs the nav will overflow on small screens — use a scrollable horizontal tab bar or a tab dropdown (shadcn `Select`) that collapses the strategy list on mobile.
+With 12 strategy tabs the nav will overflow on small screens — use a scrollable horizontal tab bar or a tab dropdown (shadcn `Select`) that collapses the strategy list on mobile.
 
-The **pair dropdown** lives in the header, always visible. Changing the pair re-fetches all data on the current tab. Store selected pair in React state (or URL query param so it's bookmarkable).
+The **pair dropdown** and **interval dropdown** live in the header, always visible. Changing either re-fetches all data on the current tab. Store selected pair and interval in React state (or URL query param so it's bookmarkable).
 
-Two top-level views:
-- **Overview** — all 9 strategies for the selected pair, side by side
-- **Strategy tabs** — one tab per strategy, scoped to the selected pair
+Three top-level views:
+- **Overview** — all 12 strategies for the selected pair + interval, side by side, plus a cross-interval comparison section
+- **Portfolio** — aggregated view across all strategies (optionally across all intervals)
+- **Strategy tabs** — one tab per strategy, scoped to the selected pair + interval
 
 ---
 
 ## Page 1 — Overview (default landing)
 
-Compares all 9 strategies for the currently selected pair.
+Compares all 12 strategies for the currently selected pair and interval.
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
@@ -194,6 +219,17 @@ List of all configured trading pairs. Fetch once on app load, use to populate th
 
 ---
 
+### GET /api/intervals
+List of all configured candle intervals. Fetch once on app load, use to populate the interval dropdown.
+```json
+[
+  { "minutes": 15, "label": "15m", "displayName": "15 min" },
+  { "minutes": 60, "label": "1h",  "displayName": "1 hour" }
+]
+```
+
+---
+
 ### GET /api/status
 Global bot health. Poll every 10s for the header.
 ```json
@@ -211,8 +247,8 @@ Global bot health. Poll every 10s for the header.
 
 ---
 
-### GET /api/strategies?pair={pair}
-All 4 strategies with their current snapshot for the selected pair. Use for Overview cards.
+### GET /api/strategies?pair={pair}&interval={interval}
+All 12 strategies with their current snapshot for the selected pair + interval. Use for Overview cards. `interval` is optional (defaults to primary interval).
 ```json
 [
   {
@@ -236,8 +272,8 @@ All 4 strategies with their current snapshot for the selected pair. Use for Over
 
 ---
 
-### GET /api/strategies/{name}/positions?pair={pair}
-Open positions for one strategy + pair with live unrealised PnL.
+### GET /api/strategies/{name}/positions?pair={pair}&interval={interval}
+Open positions for one strategy + pair + interval with live unrealised PnL. `interval` is optional.
 ```json
 [
   {
@@ -266,8 +302,8 @@ Show as a coloured bar. Red zone < 0.33, amber 0.33–0.66, green > 0.66.
 
 ---
 
-### GET /api/strategies/{name}/trades?pair={pair}&limit=50
-Closed trades for one strategy + pair.
+### GET /api/strategies/{name}/trades?pair={pair}&interval={interval}&limit=50
+Closed trades for one strategy + pair + interval. `interval` is optional.
 ```json
 [
   {
@@ -295,7 +331,8 @@ Exit reason badge colours:
 
 ---
 
-### GET /api/strategies/{name}/stats?pair={pair}
+### GET /api/strategies/{name}/stats?pair={pair}&interval={interval}
+`interval` is optional (defaults to primary interval).
 ```json
 {
   "totalTrades": 34,
@@ -313,7 +350,8 @@ Exit reason badge colours:
 
 ---
 
-### GET /api/strategies/{name}/pnl?pair={pair}
+### GET /api/strategies/{name}/pnl?pair={pair}&interval={interval}
+`interval` is optional (defaults to primary interval).
 ```json
 {
   "daily": 8.20,
@@ -325,8 +363,8 @@ Exit reason badge colours:
 
 ---
 
-### GET /api/strategies/{name}/signals?pair={pair}&limit=20
-Recent signal evaluations for one strategy + pair. Use for the signal history section.
+### GET /api/strategies/{name}/signals?pair={pair}&interval={interval}&limit=20
+Recent signal evaluations for one strategy + pair + interval. Use for the signal history section. `interval` is optional.
 ```json
 [
   {
@@ -349,8 +387,8 @@ Signal type badge colours: `BUY` → green, `SELL` → red, `HOLD` → grey.
 
 ---
 
-### GET /api/signals/summary?pair={pair}
-BUY/SELL/HOLD counts per strategy for the selected pair. Use for the signal frequency chart on Overview.
+### GET /api/signals/summary?pair={pair}&interval={interval}
+BUY/SELL/HOLD counts per strategy for the selected pair + interval. Use for the signal frequency chart on Overview. `interval` is optional.
 ```json
 [
   { "strategy": "EMA_CROSSOVER", "signalType": "BUY",  "count": 14 },
@@ -392,17 +430,23 @@ Runtime config patch. All fields optional.
 ## State management
 
 ```ts
-// Global UI state — lives in App.tsx or a context
+// Global UI state — lives in context (PairContext / FilterContext)
 const [selectedPair, setSelectedPair] = useState<string>('BTC-EUR');
-const [activeTab, setActiveTab] = useState<'overview' | StrategyName>('overview');
+const [selectedInterval, setSelectedInterval] = useState<string>('15m');
+const [activeTab, setActiveTab] = useState<'overview' | 'portfolio' | StrategyName>('overview');
 
-// Pair options fetched once on mount
+// Pair and interval options fetched once on mount
 const { data: pairs } = useQuery({ queryKey: ['pairs'], queryFn: fetchPairs, staleTime: Infinity });
+const { data: intervals } = useQuery({ queryKey: ['intervals'], queryFn: fetchIntervals, staleTime: Infinity });
 ```
 
-Every query key includes `selectedPair` so React Query re-fetches automatically when the pair changes:
+Every query key includes `selectedPair` AND `selectedInterval` so React Query re-fetches automatically when either changes:
 ```ts
-useQuery({ queryKey: ['strategies', selectedPair], queryFn: () => fetchStrategies(selectedPair), refetchInterval: 15000 })
+useQuery({
+  queryKey: ['strategies', selectedPair, selectedInterval],
+  queryFn: () => fetchStrategies(selectedPair, selectedInterval),
+  refetchInterval: 15000
+})
 ```
 
 ---
@@ -412,14 +456,16 @@ useQuery({ queryKey: ['strategies', selectedPair], queryFn: () => fetchStrategie
 | Endpoint | Interval | Notes |
 |---|---|---|
 | `/api/pairs` | once | Static config, no need to re-poll |
+| `/api/intervals` | once | Static config, no need to re-poll |
 | `/api/status` | 10s | Header — running state |
-| `/api/strategies?pair=` | 15s | Overview cards |
-| `/api/strategies/{name}/positions?pair=` | 15s | Live PnL |
-| `/api/strategies/{name}/trades?pair=` | 30s | Updates on trade close |
-| `/api/strategies/{name}/signals?pair=` | 30s | New signal every cycle |
-| `/api/strategies/{name}/stats?pair=` | 60s | Slow moving |
-| `/api/strategies/{name}/pnl?pair=` | 60s | Slow moving |
-| `/api/signals/summary?pair=` | 60s | Signal frequency chart |
+| `/api/strategies?pair=&interval=` | 15s | Overview cards |
+| `/api/strategies/{name}/positions?pair=&interval=` | 15s | Live PnL |
+| `/api/strategies/{name}/trades?pair=&interval=` | 30s | Updates on trade close |
+| `/api/strategies/{name}/signals?pair=&interval=` | 30s | New signal every cycle |
+| `/api/strategies/{name}/stats?pair=&interval=` | 60s | Slow moving |
+| `/api/strategies/{name}/pnl?pair=&interval=` | 60s | Slow moving |
+| `/api/signals/summary?pair=&interval=` | 60s | Signal frequency chart |
+| `/api/market/fear-greed` | 3600s | Cached hourly |
 
 Use `refetchIntervalInBackground: false` — pause polling when the tab is hidden.
 
@@ -430,19 +476,23 @@ Use `refetchIntervalInBackground: false` — pause polling when the tab is hidde
 ```
 src/
 ├── api/
+│   ├── client.ts          # API client setup
 │   ├── pairs.ts           # fetchPairs()
+│   ├── intervals.ts       # fetchIntervals()
 │   ├── status.ts          # fetchStatus()
-│   ├── strategies.ts      # fetchStrategies(pair), fetchStrategyStats(name, pair), etc.
-│   └── signals.ts         # fetchSignalSummary(pair), fetchStrategySignals(name, pair)
+│   ├── strategies.ts      # fetchStrategies(pair, interval), fetchStrategyStats(name, pair, interval), etc.
+│   ├── signals.ts         # fetchSignalSummary(pair, interval), fetchStrategySignals(name, pair, interval)
+│   └── fearGreed.ts       # fetchFearGreed()
 ├── components/
 │   ├── layout/
-│   │   ├── Header.tsx          # pair dropdown + bot status + stop/resume
-│   │   └── StrategyNav.tsx     # Overview + scrollable strategy tabs (9 tabs)
+│   │   ├── Header.tsx          # pair dropdown + interval dropdown + bot status + stop/resume
+│   │   └── StrategyNav.tsx     # Overview + Portfolio + scrollable strategy tabs (12 tabs)
 │   ├── overview/
-│   │   ├── StrategyCard.tsx         # one card per strategy
-│   │   ├── CumulativePnlChart.tsx   # 9 lines with show/hide legend checkboxes
-│   │   ├── SignalFrequencyChart.tsx # grouped bar chart
-│   │   └── LeaderboardTable.tsx     # sortable strategy comparison table
+│   │   ├── StrategyCard.tsx              # one card per strategy
+│   │   ├── CumulativePnlChart.tsx        # 12 lines with show/hide legend checkboxes
+│   │   ├── SignalFrequencyChart.tsx       # grouped bar chart
+│   │   ├── LeaderboardTable.tsx           # sortable strategy comparison table
+│   │   └── IntervalComparisonChart.tsx    # cross-interval PnL comparison (NEW)
 │   ├── strategy/
 │   │   ├── StrategyHeader.tsx    # win rate, expectancy, daily PnL
 │   │   ├── OpenPositions.tsx     # table + TP/SL progress bars
@@ -450,23 +500,28 @@ src/
 │   │   ├── PnlBreakdown.tsx      # day/week/month/all-time cards
 │   │   ├── StrategyPnlChart.tsx  # single cumulative PnL line
 │   │   └── SignalHistory.tsx     # recent signals with strategy-aware indicator columns
+│   ├── portfolio/                # aggregated views across all strategies
 │   └── config/
 │       └── ConfigPanel.tsx       # form → POST /api/config
 ├── hooks/
 │   ├── usePairs.ts
+│   ├── useIntervals.ts           # interval options (staleTime: Infinity)
 │   ├── useBotStatus.ts
-│   ├── useStrategies.ts          # overview data — all 9 strategies
-│   └── useStrategyDetail.ts      # all detail tab data for one strategy+pair
+│   ├── useStrategies.ts          # overview data — all 12 strategies
+│   └── useStrategyDetail.ts      # all detail tab data for one strategy+pair+interval
 ├── utils/
 │   ├── format.ts                 # EUR formatting, PnL colour, cumulative PnL
 │   └── strategyMeta.ts           # indicator label mapping (see below)
 ├── pages/
 │   ├── OverviewPage.tsx
-│   └── StrategyPage.tsx          # rendered for each of the 9 tabs
+│   ├── PortfolioPage.tsx
+│   └── StrategyPage.tsx          # rendered for each of the 12 tabs
 ├── context/
-│   └── PairContext.tsx            # selectedPair state + setter, wraps the whole app
+│   └── PairContext.tsx            # selectedPair + selectedInterval state, wraps the whole app
 └── App.tsx
 ```
+
+All API functions accept `(pair, interval)` params. All React Query keys include both `selectedPair` and `selectedInterval`.
 
 ---
 
@@ -491,6 +546,9 @@ const META: Record<string, IndicatorMeta> = {
   PARABOLIC_SAR:  { emaShortLabel: 'SAR',        emaLongLabel: null,       rsiLabel: 'Price−SAR %' },
   ADX_DI:         { emaShortLabel: '+DI',        emaLongLabel: '−DI',      rsiLabel: 'ADX' },
   CCI:            { emaShortLabel: null,         emaLongLabel: null,       rsiLabel: 'CCI' },
+  MFI:            { emaShortLabel: null,         emaLongLabel: null,       rsiLabel: 'MFI' },
+  DONCHIAN:       { emaShortLabel: 'Upper Ch.',  emaLongLabel: 'Lower Ch.', rsiLabel: 'Width %' },
+  ICHIMOKU:       { emaShortLabel: 'Tenkan',     emaLongLabel: 'Kijun',    rsiLabel: 'Span A' },
 }
 
 export function getIndicatorMeta(strategyName: string): IndicatorMeta {

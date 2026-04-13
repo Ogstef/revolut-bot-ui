@@ -1,20 +1,29 @@
 import { request } from './client';
 import type { StrategyName, StrategyInfo, Position, Trade, Stats, PnlBreakdown, ConfigUpdate } from './client';
 
-export const fetchStrategies = (pair: string) =>
-  request<StrategyInfo[]>(`/api/strategies?pair=${encodeURIComponent(pair)}`);
+function qs(pair: string, interval?: string, extra?: Record<string, string | number>): string {
+  const parts: string[] = [`pair=${encodeURIComponent(pair)}`];
+  if (interval) parts.push(`interval=${encodeURIComponent(interval)}`);
+  if (extra) {
+    for (const [k, v] of Object.entries(extra)) parts.push(`${k}=${encodeURIComponent(String(v))}`);
+  }
+  return parts.join('&');
+}
 
-export const fetchPositions = (name: StrategyName, pair: string) =>
-  request<Position[]>(`/api/strategies/${name}/positions?pair=${encodeURIComponent(pair)}`);
+export const fetchStrategies = (pair: string, interval?: string) =>
+  request<StrategyInfo[]>(`/api/strategies?${qs(pair, interval)}`);
 
-export const fetchTrades = (name: StrategyName, pair: string, limit = 50) =>
-  request<Trade[]>(`/api/strategies/${name}/trades?pair=${encodeURIComponent(pair)}&limit=${limit}`);
+export const fetchPositions = (name: StrategyName, pair: string, interval?: string) =>
+  request<Position[]>(`/api/strategies/${name}/positions?${qs(pair, interval)}`);
 
-export const fetchStats = (name: StrategyName, pair: string) =>
-  request<Stats>(`/api/strategies/${name}/stats?pair=${encodeURIComponent(pair)}`);
+export const fetchTrades = (name: StrategyName, pair: string, limit = 50, interval?: string) =>
+  request<Trade[]>(`/api/strategies/${name}/trades?${qs(pair, interval, { limit })}`);
 
-export const fetchPnl = (name: StrategyName, pair: string) =>
-  request<PnlBreakdown>(`/api/strategies/${name}/pnl?pair=${encodeURIComponent(pair)}`);
+export const fetchStats = (name: StrategyName, pair: string, interval?: string) =>
+  request<Stats>(`/api/strategies/${name}/stats?${qs(pair, interval)}`);
+
+export const fetchPnl = (name: StrategyName, pair: string, interval?: string) =>
+  request<PnlBreakdown>(`/api/strategies/${name}/pnl?${qs(pair, interval)}`);
 
 export const updateConfig = (cfg: ConfigUpdate) =>
   request<string>('/api/config', { method: 'POST', body: JSON.stringify(cfg) });
