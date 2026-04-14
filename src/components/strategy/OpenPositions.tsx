@@ -57,6 +57,7 @@ function PositionRow({ pos }: { pos: Position }) {
   const pnlPos = pos.unrealisedPnl >= 0;
   const range = pos.takeProfit - pos.stopLoss;
   const progress = range > 0 ? ((pos.currentPrice - pos.stopLoss) / range) * 100 : 50;
+  const progressColor = progress > 66 ? 'var(--green)' : progress > 33 ? 'var(--amber)' : 'var(--red)';
   const tpDist = ((pos.takeProfit - pos.currentPrice) / pos.currentPrice) * 100;
   const slDist = ((pos.currentPrice - pos.stopLoss) / pos.currentPrice) * 100;
 
@@ -80,9 +81,7 @@ function PositionRow({ pos }: { pos: Position }) {
           <div className="progress-bar" style={{ height: 4 }}>
             <div className="progress-fill" style={{
               width: `${Math.max(2, Math.min(98, progress))}%`,
-              background: pnlPos
-                ? 'linear-gradient(90deg, var(--blue-dim), var(--blue))'
-                : 'linear-gradient(90deg, var(--red-dim), var(--amber))',
+              background: progressColor,
             }} />
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>

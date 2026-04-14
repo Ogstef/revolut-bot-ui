@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import type { Trade } from '../../api/client';
 import { strategyColor } from '../../utils/strategyMeta';
-import { formatPnl } from '../../utils/format';
+import { formatPnl, formatAxisPnl } from '../../utils/format';
 
 type Range = 'daily' | 'weekly' | 'monthly' | 'all';
 
@@ -166,7 +166,7 @@ export default function CumulativePnlChart({ strategyTrades }: { strategyTrades:
               <YAxis
                 tick={{ fill: 'var(--text-muted)', fontSize: 10, fontFamily: 'var(--font-mono)' }}
                 axisLine={false} tickLine={false}
-                tickFormatter={v => `€${v}`}
+                tickFormatter={v => formatAxisPnl(v)}
                 width={52}
               />
               <Tooltip content={<CustomTooltip nameMap={nameMap} />} />

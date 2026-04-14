@@ -4,7 +4,7 @@ import {
   Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import type { Trade, Position } from '../../api/client';
-import { formatPnl } from '../../utils/format';
+import { formatPnl, formatAxisPnl } from '../../utils/format';
 
 interface Props {
   trades: Trade[] | undefined;
@@ -132,7 +132,7 @@ export default function StrategyPnlChart({ trades, positions }: Props) {
               <YAxis
                 tick={{ fill: 'var(--text-muted)', fontSize: 10, fontFamily: 'var(--font-mono)' }}
                 axisLine={false} tickLine={false}
-                tickFormatter={v => `€${v}`}
+                tickFormatter={v => formatAxisPnl(v)}
                 width={52}
               />
               <Tooltip content={<CustomTooltip />} />

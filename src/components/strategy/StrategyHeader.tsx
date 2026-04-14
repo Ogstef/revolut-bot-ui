@@ -19,12 +19,12 @@ export default function StrategyHeader({ info, stats, pnl }: Props) {
         flexWrap: 'wrap',
         gap: 0,
       }}>
-        {/* Daily PnL */}
+        {/* Daily PnL — prefer the fresher 15s source (info.dailyPnl) over the 60s pnl endpoint */}
         <MetricBlock
           label="Daily PnL"
-          value={formatPnl(pnl?.daily ?? info?.dailyPnl ?? 0)}
-          valueColor={(pnl?.daily ?? info?.dailyPnl ?? 0) >= 0 ? 'var(--green)' : 'var(--red)'}
-          glow={(pnl?.daily ?? info?.dailyPnl ?? 0) >= 0}
+          value={formatPnl(info?.dailyPnl ?? pnl?.daily ?? 0)}
+          valueColor={(info?.dailyPnl ?? pnl?.daily ?? 0) >= 0 ? 'var(--green)' : 'var(--red)'}
+          glow={(info?.dailyPnl ?? pnl?.daily ?? 0) >= 0}
         />
 
         <Divider />

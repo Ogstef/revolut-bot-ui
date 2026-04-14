@@ -7,10 +7,15 @@ interface StrategyRow {
   stats: Stats | undefined;
 }
 
-type SortKey = 'totalTrades' | 'winRate' | 'totalPnl' | 'expectancy';
+type SortKey = 'totalTrades' | 'winRate' | 'totalPnl' | 'expectancy' | 'dailyPnl';
 
 interface Props {
   rows: StrategyRow[];
+}
+
+function readValue(row: StrategyRow, key: SortKey): number {
+  if (key === 'dailyPnl') return row.info.dailyPnl ?? 0;
+  return (row.stats?.[key] as number | undefined) ?? -Infinity;
 }
 
 export default function LeaderboardTable({ rows }: Props) {
@@ -18,8 +23,8 @@ export default function LeaderboardTable({ rows }: Props) {
   const [sortDesc, setSortDesc] = useState(true);
 
   const sorted = [...rows].sort((a, b) => {
-    const av = a.stats?.[sortKey] ?? -Infinity;
-    const bv = b.stats?.[sortKey] ?? -Infinity;
+    const av = readValue(a, sortKey);
+    const bv = readValue(b, sortKey);
     return sortDesc ? bv - av : av - bv;
   });
 
@@ -29,6 +34,7 @@ export default function LeaderboardTable({ rows }: Props) {
     winRate:     Math.max(...rows.map(r => r.stats?.winRate     ?? 0)),
     totalPnl:    Math.max(...rows.map(r => r.stats?.totalPnl    ?? -Infinity)),
     expectancy:  Math.max(...rows.map(r => r.stats?.expectancy  ?? -Infinity)),
+    dailyPnl:    Math.max(...rows.map(r => r.info.dailyPnl ?? -Infinity)),
   };
 
   function handleSort(key: SortKey) {
@@ -39,8 +45,9 @@ export default function LeaderboardTable({ rows }: Props) {
   const cols: { key: SortKey; label: string }[] = [
     { key: 'totalTrades', label: 'Trades'      },
     { key: 'winRate',     label: 'Win Rate'    },
-    { key: 'totalPnl',   label: 'Total PnL'   },
-    { key: 'expectancy', label: 'Expectancy'  },
+    { key: 'dailyPnl',    label: 'Daily PnL'   },
+    { key: 'totalPnl',    label: 'Total PnL'   },
+    { key: 'expectancy',  label: 'Expectancy'  },
   ];
 
   return (
@@ -70,10 +77,12 @@ export default function LeaderboardTable({ rows }: Props) {
           <tbody>
             {sorted.map((r, i) => {
               const s = r.stats;
-              const isBestPnl   = (s?.totalPnl   ?? -Infinity) === best.totalPnl   && best.totalPnl > 0;
-              const isBestWr    = (s?.winRate     ?? 0)         === best.winRate    && best.winRate > 0;
-              const isBestExp   = (s?.expectancy  ?? -Infinity) === best.expectancy && best.expectancy > 0;
-              const isBestTrades = (s?.totalTrades ?? 0)        === best.totalTrades && best.totalTrades > 0;
+              const daily = r.info.dailyPnl ?? 0;
+              const isBestPnl    = (s?.totalPnl    ?? -Infinity) === best.totalPnl    && best.totalPnl    > 0;
+              const isBestWr     = (s?.winRate     ?? 0)         === best.winRate     && best.winRate     > 0;
+              const isBestExp    = (s?.expectancy  ?? -Infinity) === best.expectancy  && best.expectancy  > 0;
+              const isBestTrades = (s?.totalTrades ?? 0)         === best.totalTrades && best.totalTrades > 0;
+              const isBestDaily  = daily                         === best.dailyPnl   && best.dailyPnl    > 0;
 
               return (
                 <tr key={r.info.name} style={{
@@ -90,34 +99,32 @@ export default function LeaderboardTable({ rows }: Props) {
                       )}
                     </div>
                   </td>
-                  <td>
-                    <ValueCell value={s?.totalTrades ?? null} isBest={isBestTrades} format={v => String(v)} />
-                  </td>
-                  <td>
-                    <ValueCell
-                      value={s?.winRate ?? null}
-                      isBest={isBestWr}
-                      format={v => `${v.toFixed(1)}%`}
-                      colorize={v => v >= 50 ? 'var(--green)' : 'var(--red)'}
-                    />
-                  </td>
-                  <td>
-                    <ValueCell
-                      value={s?.totalPnl ?? null}
-                      isBest={isBestPnl}
-                      format={v => formatPnl(v)}
-                      colorize={v => v >= 0 ? 'var(--green)' : 'var(--red)'}
-                    />
-                  </td>
-                  <td>
-                    <ValueCell
-                      value={s?.expectancy ?? null}
-                      isBest={isBestExp}
-                      format={v => formatPnl(v)}
-                      colorize={v => v >= 0 ? 'var(--green)' : 'var(--red)'}
-                      suffix=" / trade"
-                    />
-                  </td>
+                  <ValueCell value={s?.totalTrades ?? null} isBest={isBestTrades} format={v => String(v)} />
+                  <ValueCell
+                    value={s?.winRate ?? null}
+                    isBest={isBestWr}
+                    format={v => `${v.toFixed(1)}%`}
+                    colorize={v => v >= 50 ? 'var(--green)' : 'var(--red)'}
+                  />
+                  <ValueCell
+                    value={daily}
+                    isBest={isBestDaily}
+                    format={v => formatPnl(v)}
+                    colorize={v => v >= 0 ? 'var(--green)' : 'var(--red)'}
+                  />
+                  <ValueCell
+                    value={s?.totalPnl ?? null}
+                    isBest={isBestPnl}
+                    format={v => formatPnl(v)}
+                    colorize={v => v >= 0 ? 'var(--green)' : 'var(--red)'}
+                  />
+                  <ValueCell
+                    value={s?.expectancy ?? null}
+                    isBest={isBestExp}
+                    format={v => formatPnl(v)}
+                    colorize={v => v >= 0 ? 'var(--green)' : 'var(--red)'}
+                    suffix=" / trade"
+                  />
                   <td>
                     {r.info.circuitBreakerActive
                       ? <span className="badge badge-red animate-blink">ON</span>

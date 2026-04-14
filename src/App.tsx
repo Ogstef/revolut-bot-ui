@@ -32,10 +32,10 @@ function AppInner() {
       <Header
         status={statusQ.data}
         isLoading={statusQ.isLoading}
-        pairs={pairsQ.data ?? []}
+        pairs={Array.isArray(pairsQ.data) ? pairsQ.data : []}
         selectedPair={selectedPair}
         onPairChange={setSelectedPair}
-        intervals={intervalsQ.data ?? []}
+        intervals={Array.isArray(intervalsQ.data) ? intervalsQ.data : []}
         selectedInterval={selectedInterval}
         onIntervalChange={setSelectedInterval}
       />
@@ -50,7 +50,7 @@ function AppInner() {
           color: 'var(--red)',
           flexShrink: 0,
         }}>
-          ✗ Cannot reach backend at localhost:8089 — is the Spring Boot server running?
+          ✗ Cannot reach backend — is the trading bot service running?
         </div>
       )}
 

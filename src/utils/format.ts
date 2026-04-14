@@ -4,6 +4,12 @@ export function formatPnl(val: number | null | undefined): string {
   return `${sign}€${Math.abs(val).toFixed(2)}`;
 }
 
+export function formatAxisPnl(val: number | null | undefined): string {
+  if (val == null) return '—';
+  const sign = val < 0 ? '-' : '';
+  return `${sign}€${Math.round(Math.abs(val))}`;
+}
+
 export function formatPct(val: number | null | undefined): string {
   if (val == null) return '—';
   const sign = val >= 0 ? '+' : '';

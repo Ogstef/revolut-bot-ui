@@ -4,7 +4,7 @@ import {
   Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import type { Trade } from '../../api/client';
-import { formatPnl } from '../../utils/format';
+import { formatPnl, formatAxisPnl } from '../../utils/format';
 
 type Range = 'daily' | 'weekly' | 'monthly' | 'all';
 
@@ -122,7 +122,7 @@ export default function PortfolioPnlChart({ allTrades }: Props) {
               <YAxis
                 tick={{ fill: 'var(--text-muted)', fontSize: 10, fontFamily: 'var(--font-mono)' }}
                 axisLine={false} tickLine={false}
-                tickFormatter={v => `€${v}`} width={52}
+                tickFormatter={v => formatAxisPnl(v)} width={52}
               />
               <Tooltip content={<CustomTooltip />} />
               <ReferenceLine y={0} stroke="var(--border-bright)" strokeDasharray="3 3" />

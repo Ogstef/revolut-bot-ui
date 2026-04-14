@@ -4,9 +4,10 @@ import { formatPnl } from '../../utils/format';
 interface Props {
   pnl: PnlBreakdownType | undefined;
   isLoading: boolean;
+  dailyOverride?: number;
 }
 
-export default function PnlBreakdown({ pnl, isLoading }: Props) {
+export default function PnlBreakdown({ pnl, isLoading, dailyOverride }: Props) {
   const periods: [string, keyof PnlBreakdownType][] = [
     ['Daily',    'daily'],
     ['Weekly',   'weekly'],
@@ -25,7 +26,9 @@ export default function PnlBreakdown({ pnl, isLoading }: Props) {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
           {periods.map(([label, key], i) => {
-            const val = pnl?.[key] ?? 0;
+            const val = key === 'daily' && dailyOverride != null
+              ? dailyOverride
+              : (pnl?.[key] ?? 0);
             const pos = val >= 0;
             const borderTop = i >= 2 ? '1px solid var(--border)' : undefined;
             const borderLeft = i % 2 === 1 ? '1px solid var(--border)' : undefined;

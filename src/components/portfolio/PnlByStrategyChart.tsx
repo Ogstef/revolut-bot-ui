@@ -4,7 +4,7 @@ import {
 } from 'recharts';
 import type { StrategyStats } from '../../pages/PortfolioPage';
 import { strategyColor } from '../../utils/strategyMeta';
-import { formatPnl } from '../../utils/format';
+import { formatPnl, formatAxisPnl } from '../../utils/format';
 
 interface Props {
   strategyStats: StrategyStats[];
@@ -61,7 +61,7 @@ export default function PnlByStrategyChart({ strategyStats }: Props) {
               <YAxis
                 tick={{ fill: 'var(--text-muted)', fontSize: 10, fontFamily: 'var(--font-mono)' }}
                 axisLine={false} tickLine={false}
-                tickFormatter={v => `€${v}`} width={48}
+                tickFormatter={v => formatAxisPnl(v)} width={48}
               />
               <Tooltip content={<CustomTooltip />} />
               <ReferenceLine y={0} stroke="var(--border-bright)" strokeDasharray="3 3" />
