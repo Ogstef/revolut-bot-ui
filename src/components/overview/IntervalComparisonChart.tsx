@@ -12,7 +12,7 @@ import type { StrategyName, Stats } from '../../api/client';
 /**
  * Cross-interval comparison chart — shows the same strategies' total PnL
  * side-by-side across all configured intervals for the selected pair.
- * Lets you quickly see whether a strategy performs better on 15m vs 1h, etc.
+ * Lets you quickly see whether a strategy performs better on one timeframe vs another.
  */
 export default function IntervalComparisonChart() {
   const { selectedPair } = usePair();

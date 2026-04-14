@@ -105,8 +105,8 @@ export interface PairInfo {
 
 export interface IntervalInfo {
   minutes: number;
-  label: string;        // "15m", "1h", "4h", "1d"
-  displayName: string;  // "15 min", "1 hour", "4 hours", "1 day"
+  label: string;        // "15m", "1h", "4h", "1d", "1w"
+  displayName: string;  // "15 min", "1 hour", "4 hours", "1 day", "1 week"
 }
 
 export interface SignalSummary {
