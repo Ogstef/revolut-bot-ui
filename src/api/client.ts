@@ -77,6 +77,35 @@ export interface Trade {
   closedAt?: string;   // exit/close time — use this for "Closed At" display
 }
 
+/**
+ * Closed trade enriched with parent-position context — returned by
+ * GET /api/strategies/{name}/history. See API_CONTRACT.md §5 for field definitions.
+ */
+export interface TradeHistoryEntry {
+  id: number;
+  pair: string;
+  interval: string;
+  side: 'BUY' | 'SELL';
+  entryPrice: number;
+  exitPrice: number | null;
+  quantity: number;
+  pnl: number | null;
+  pnlPct: number | null;
+  strategyName: StrategyName;
+  exitReason: 'TP_HIT' | 'SL_HIT' | 'SIGNAL_EXIT' | 'MANUAL' | null;
+  tradingMode: 'PAPER' | 'LIVE';
+  executedAt: string;
+  closedAt: string | null;
+  // Enrichment from the parent Position
+  entrySignalReason: string | null;
+  takeProfit: number | null;
+  stopLoss: number | null;
+  openedAt: string | null;
+  // Derived analytics
+  holdingDurationSeconds: number | null;
+  rMultiple: number | null;
+}
+
 export interface Stats {
   totalTrades: number;
   winningTrades: number;
