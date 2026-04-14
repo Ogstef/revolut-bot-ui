@@ -1,5 +1,6 @@
 import type { StrategyInfo } from '../../api/client';
 import { KNOWN_STRATEGIES } from '../../utils/strategyMeta';
+import { formatPnl } from '../../utils/format';
 
 type Tab = string;
 
@@ -107,7 +108,7 @@ function SideItem({
         )}
         {pnl != null && (
           <span style={{ fontSize: 10, color: pnlColor, fontWeight: 600 }}>
-            {pnl >= 0 ? '+' : ''}{pnl.toFixed(1)}€
+            {formatPnl(pnl)}
           </span>
         )}
       </span>

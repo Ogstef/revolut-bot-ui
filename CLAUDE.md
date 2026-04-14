@@ -2,6 +2,7 @@
 
 > **See also:** Root [`/CLAUDE.md`](../CLAUDE.md) for project-wide context (execution unit, how to run, API overview).
 > Backend-specific instructions are in [`revolut-trading-bot/CLAUDE.md`](../revolut-trading-bot/CLAUDE.md).
+> **HTTP contract with the backend:** [`../API_CONTRACT.md`](../API_CONTRACT.md) is the single source of truth for endpoints, DTOs, enums, and query-param conventions. Keep `src/api/client.ts` in sync with it — when a field/endpoint changes on either side, update the contract file in the same PR.
 
 ## Overview
 
@@ -201,6 +202,8 @@ Same structure for all 4 tabs, data scoped to selected pair + strategy.
 ---
 
 ## Full API Contract
+
+> **Canonical source:** [`../API_CONTRACT.md`](../API_CONTRACT.md). The examples below are a quick-reference duplicate — if they diverge from the canonical file, the canonical file wins. Update both when fields change.
 
 Base URL: `http://localhost:8089`
 CORS is already configured for `http://localhost:5173`.

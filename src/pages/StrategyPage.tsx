@@ -57,7 +57,7 @@ export default function StrategyPage({ strategyName, strategyInfoList }: Props) 
       {/* Row 2: Trades table + PnL breakdown */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 12 }}>
         <TradesTable trades={trades.data} isLoading={trades.isLoading} />
-        <PnlBreakdown pnl={pnl.data} isLoading={pnl.isLoading} />
+        <PnlBreakdown pnl={pnl.data} isLoading={pnl.isLoading} dailyOverride={info?.dailyPnl} />
       </div>
 
       {/* Row 3: Signal history — strategy-aware columns */}

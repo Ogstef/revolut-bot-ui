@@ -6,7 +6,7 @@ import { useIntervals } from '../../hooks/useIntervals';
 import { useStrategies } from '../../hooks/useStrategies';
 import { fetchStats } from '../../api/strategies';
 import { KNOWN_STRATEGIES } from '../../utils/strategyMeta';
-import { formatPnl } from '../../utils/format';
+import { formatPnl, formatAxisPnl } from '../../utils/format';
 import type { StrategyName, Stats } from '../../api/client';
 
 /**
@@ -99,7 +99,7 @@ export default function IntervalComparisonChart() {
           />
           <YAxis
             tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
-            tickFormatter={v => metric === 'winRate' ? `${v}%` : `€${v.toFixed(0)}`}
+            tickFormatter={v => metric === 'winRate' ? `${v}%` : formatAxisPnl(v)}
           />
           <Tooltip
             contentStyle={{
