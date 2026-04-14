@@ -9,6 +9,7 @@ import StrategyNav from './components/layout/StrategyNav';
 import OverviewPage from './pages/OverviewPage';
 import StrategyPage from './pages/StrategyPage';
 import PortfolioPage from './pages/PortfolioPage';
+import HistoryPage from './pages/HistoryPage';
 
 function AppInner() {
   const [activeTab, setActiveTab] = useState<string>('overview');
@@ -66,6 +67,8 @@ function AppInner() {
             <OverviewPage onStrategyClick={setActiveTab} />
           ) : activeTab === 'portfolio' ? (
             <PortfolioPage />
+          ) : activeTab === 'history' ? (
+            <HistoryPage />
           ) : (
             <StrategyPage
               strategyName={activeTab}

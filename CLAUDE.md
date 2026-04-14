@@ -121,9 +121,10 @@ With 12 strategy tabs the nav will overflow on small screens — use a scrollabl
 
 The **pair dropdown** and **interval dropdown** live in the header, always visible. Changing either re-fetches all data on the current tab. Store selected pair and interval in React state (or URL query param so it's bookmarkable).
 
-Three top-level views:
+Top-level views:
 - **Overview** — all 12 strategies for the selected pair + interval, side by side, plus a cross-interval comparison section
 - **Portfolio** — aggregated view across all strategies (optionally across all intervals)
+- **History** — forensic per-(pair, strategy, interval) trade-by-trade analytics with date filters, KPI strip, equity/drawdown chart, monthly heatmap, exit-reason donut, duration histogram, R-multiple distribution, day×hour heatmap, streak timeline, and a sortable/filterable/expandable trade table (see Page 3 below)
 - **Strategy tabs** — one tab per strategy, scoped to the selected pair + interval
 
 ---
@@ -164,6 +165,35 @@ Compares all 12 strategies for the currently selected pair and interval.
 - Strategy cards + leaderboard: `GET /api/strategies?pair={pair}` + `GET /api/strategies/{name}/stats?pair={pair}` for all 9 (poll 30s)
 - Cumulative PnL chart: `GET /api/strategies/{name}/trades?pair={pair}&limit=500` for all 9, compute running sum on frontend
 - Signal chart: `GET /api/signals/summary?pair={pair}` (poll 60s)
+
+---
+
+## Page 3 — History & Analytics Tab
+
+A dedicated forensic view of every closed position for a given `(pair, strategy, interval)`. Pair and interval come from the global header; the strategy is selected via a chip row inside the page. A date-range chip strip (7D / 30D / 90D / YTD / All) narrows the dataset.
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Header: BTC-EUR | 15m | EMA Crossover                                 │
+│  Strategy chips: [EMA] [MACD] … [Ichimoku]                             │
+│  Date chips:     [7D] [30D] [90D] [YTD] [ALL]                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│  KPI strip (8 cards): Total / Win% / Net PnL / PF / Expectancy /       │
+│                       Avg hold / Max DD / Longest streak               │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Equity curve + drawdown overlay (ComposedChart, dual Y axis)          │
+├─────────────────────────────────────────────────────────────────────────┤
+│  2×3 grid: Monthly returns heatmap | Exit-reason donut                 │
+│            Duration histogram      | R-multiple distribution            │
+│            Day × hour PnL heatmap  | Win/loss streak timeline           │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Filter bar: side | exit reason | wins/losses | search signal reason   │
+│  Trade table: sortable, click-to-expand → entry signal reason, TP/SL,  │
+│  duration, R-multiple, all timestamps                                   │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**Data source:** `GET /api/strategies/{name}/history?pair=&interval=&from=&to=` → `TradeHistoryEntry[]`. The hook is `useHistory` (poll 60s, paused in background). All chart maths live in `src/utils/analytics.ts` (pure functions). Components live in `src/components/history/`.
 
 ---
 
