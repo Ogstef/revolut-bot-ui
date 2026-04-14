@@ -95,8 +95,11 @@ Fetched dynamically from `GET /api/intervals`. Do NOT hardcode interval values.
 Typical response:
 ```json
 [
-  { "minutes": 15, "label": "15m", "displayName": "15 min" },
-  { "minutes": 60, "label": "1h",  "displayName": "1 hour" }
+  { "minutes": 15,    "label": "15m", "displayName": "15 min" },
+  { "minutes": 60,    "label": "1h",  "displayName": "1 hour" },
+  { "minutes": 240,   "label": "4h",  "displayName": "4 hours" },
+  { "minutes": 1440,  "label": "1d",  "displayName": "1 day" },
+  { "minutes": 10080, "label": "1w",  "displayName": "1 week" }
 ]
 ```
 
@@ -226,8 +229,11 @@ List of all configured trading pairs. Fetch once on app load, use to populate th
 List of all configured candle intervals. Fetch once on app load, use to populate the interval dropdown.
 ```json
 [
-  { "minutes": 15, "label": "15m", "displayName": "15 min" },
-  { "minutes": 60, "label": "1h",  "displayName": "1 hour" }
+  { "minutes": 15,    "label": "15m", "displayName": "15 min" },
+  { "minutes": 60,    "label": "1h",  "displayName": "1 hour" },
+  { "minutes": 240,   "label": "4h",  "displayName": "4 hours" },
+  { "minutes": 1440,  "label": "1d",  "displayName": "1 day" },
+  { "minutes": 10080, "label": "1w",  "displayName": "1 week" }
 ]
 ```
 
