@@ -2,7 +2,7 @@ import type { Position } from '../../api/client';
 import { strategyColor } from '../../utils/strategyMeta';
 import { formatPnl, formatPct, formatPrice, formatQty, formatDateTime } from '../../utils/format';
 
-type EnrichedPosition = Position & { strategyName: string; strategyDisplayName: string };
+type EnrichedPosition = Omit<Position, 'strategyName'> & { strategyName: string; strategyDisplayName: string };
 
 interface Props {
   positions: EnrichedPosition[];

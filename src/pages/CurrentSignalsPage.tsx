@@ -4,7 +4,7 @@ import { useCurrentSignals } from '../hooks/useCurrentSignals';
 import { usePairs } from '../hooks/usePairs';
 import { useIntervals } from '../hooks/useIntervals';
 import { KNOWN_STRATEGIES, getIndicatorMeta } from '../utils/strategyMeta';
-import { formatPrice } from '../utils/format';
+import { formatPrice, formatTimeAgo } from '../utils/format';
 
 interface Props {
   onSelectStrategy: (name: string) => void;
@@ -225,7 +225,7 @@ function ExpandedDetails({
         <span className="label">{signal.pair} · {intervalLabel} · {signal.displayName}</span>
         {signal.evaluatedAt && (
           <span style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-            Evaluated {timeAgo(signal.evaluatedAt)}
+            Evaluated {formatTimeAgo(signal.evaluatedAt)}
           </span>
         )}
         {signal.currentPrice != null && (
@@ -308,16 +308,3 @@ function formatIndicator(value: number, strategyName: string, field: 'emaShort' 
   return value.toFixed(2);
 }
 
-function timeAgo(iso: string): string {
-  const then = new Date(iso).getTime();
-  if (Number.isNaN(then)) return '—';
-  const diffMs = Date.now() - then;
-  const sec = Math.max(0, Math.round(diffMs / 1000));
-  if (sec < 60) return `${sec}s ago`;
-  const min = Math.round(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.round(min / 60);
-  if (hr < 48) return `${hr}h ago`;
-  const days = Math.round(hr / 24);
-  return `${days}d ago`;
-}

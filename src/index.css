@@ -240,3 +240,30 @@ body::before {
   border-radius: 1px;
   transition: width 0.6s ease;
 }
+
+/* ── Activity feed severity tinting ─────────────────────────── */
+.activity-row {
+  display: grid;
+  grid-template-columns: 80px 22px 1fr auto;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid transparent;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  transition: background 0.1s;
+}
+.activity-row:hover { background: var(--bg-elevated); }
+.activity-row.severity-warning  { border-left-color: var(--amber); }
+.activity-row.severity-critical { border-left-color: var(--red); background: rgba(255,61,90,0.04); }
+.activity-row .ts     { color: var(--text-muted); }
+.activity-row .icon   { font-size: 14px; color: var(--text-secondary); text-align: center; }
+.activity-row .title  { color: var(--text-primary); font-weight: 600; }
+.activity-row .detail { color: var(--text-secondary); font-size: 10px; margin-top: 2px; }
+.triple-chip {
+  display: inline-flex; gap: 4px; padding: 2px 6px;
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  font-size: 9px; color: var(--text-secondary); letter-spacing: 0.05em;
+  text-transform: uppercase; white-space: nowrap;
+}

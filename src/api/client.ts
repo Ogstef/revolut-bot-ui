@@ -48,6 +48,8 @@ export interface Position {
   id: number;
   pair: string;
   interval?: string;
+  strategyName?: StrategyName;
+  displayName?: string;
   side: 'BUY' | 'SELL';
   entryPrice: number;
   quantity: number;
@@ -178,6 +180,49 @@ export interface FearGreed {
   value: number;           // 0–100
   classification: string;  // "Extreme Fear" | "Fear" | "Neutral" | "Greed" | "Extreme Greed"
   timestamp: number;       // unix epoch seconds
+}
+
+export type BotEventType =
+  | 'POSITION_OPENED'
+  | 'POSITION_CLOSED'
+  | 'CIRCUIT_BREAKER_TRIPPED'
+  | 'CIRCUIT_BREAKER_RESET'
+  | 'BOT_STOPPED'
+  | 'BOT_RESUMED'
+  | 'CONFIG_CHANGED';
+
+export type BotEventSeverity = 'INFO' | 'WARNING' | 'CRITICAL';
+
+export interface TripleStats {
+  pair: string;
+  interval: string;
+  strategy: StrategyName;
+  displayName: string;
+  totalTrades: number;
+  winningTrades: number;
+  losingTrades: number;
+  winRate: number;
+  totalPnl: number;
+  averageWin: number;
+  averageLoss: number;
+  bestTrade: number;
+  worstTrade: number;
+  expectancy: number;
+  openPositions: number;
+  circuitBreakerActive: boolean;
+}
+
+export interface BotEvent {
+  id: number;
+  type: BotEventType;
+  severity: BotEventSeverity;
+  pair: string | null;
+  interval: string | null;
+  strategy: StrategyName | null;
+  title: string;
+  detail: string | null;
+  metadata: string | null;
+  createdAt: string;
 }
 
 export interface ConfigUpdate {
