@@ -14,6 +14,8 @@ import CurrentSignalsPage from './pages/CurrentSignalsPage';
 import PositionsLivePage from './pages/PositionsLivePage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import ActivityFeedPage from './pages/ActivityFeedPage';
+import ConsensusPage from './pages/ConsensusPage';
+import CrossIntervalPage from './pages/CrossIntervalPage';
 
 function AppInner() {
   const [activeTab, setActiveTab] = useState<string>('overview');
@@ -81,6 +83,10 @@ function AppInner() {
             <LeaderboardPage onSelectStrategy={setActiveTab} />
           ) : activeTab === 'activity' ? (
             <ActivityFeedPage onSelectStrategy={setActiveTab} />
+          ) : activeTab === 'consensus' ? (
+            <ConsensusPage onSelectStrategy={setActiveTab} />
+          ) : activeTab === 'cross-interval' ? (
+            <CrossIntervalPage />
           ) : (
             <StrategyPage
               strategyName={activeTab}

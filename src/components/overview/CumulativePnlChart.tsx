@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import type { Trade } from '../../api/client';
 import { strategyColor } from '../../utils/strategyMeta';
+import { toCumulativePnl } from '../../utils/analytics';
 import { formatPnl, formatAxisPnl } from '../../utils/format';
 
 type Range = 'daily' | 'weekly' | 'monthly' | 'all';
@@ -13,17 +14,6 @@ interface StrategyTrades {
   name: string;
   displayName?: string;
   trades: Trade[] | undefined;
-}
-
-function toCumulativePnl(trades: Trade[], cutoff: Date): { date: number; pnl: number }[] {
-  const filtered = trades
-    .filter(t => new Date(t.closedAt ?? t.executedAt) >= cutoff)
-    .sort((a, b) => new Date(a.closedAt ?? a.executedAt).getTime() - new Date(b.closedAt ?? b.executedAt).getTime());
-  let running = 0;
-  return filtered.map(t => ({
-    date: new Date(t.closedAt ?? t.executedAt).getTime(),
-    pnl: parseFloat((running += t.pnl ?? 0).toFixed(2)),
-  }));
 }
 
 function mergeTimelines(allSeries: { name: string; points: { date: number; pnl: number }[] }[]) {
@@ -68,7 +58,16 @@ function CustomTooltip({ active, payload, label, nameMap }: any) {
   );
 }
 
-export default function CumulativePnlChart({ strategyTrades }: { strategyTrades: StrategyTrades[] }) {
+interface Props {
+  strategyTrades: StrategyTrades[];
+  /** Optional override so callers (e.g. Cross-Interval) can colour lines by interval instead of strategy. */
+  colorForKey?: (key: string) => string;
+  /** Optional header label override. */
+  title?: string;
+}
+
+export default function CumulativePnlChart({ strategyTrades, colorForKey, title }: Props) {
+  const resolveColor = colorForKey ?? strategyColor;
   const [range, setRange] = useState<Range>('weekly');
   const [hidden, setHidden] = useState<Set<string>>(new Set());
 
@@ -98,7 +97,7 @@ export default function CumulativePnlChart({ strategyTrades }: { strategyTrades:
   return (
     <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
       <div className="card-header">
-        <span className="label">Cumulative PnL — All Strategies</span>
+        <span className="label">{title ?? 'Cumulative PnL — All Strategies'}</span>
         <div style={{ display: 'flex', gap: 4 }}>
           {ranges.map(r => (
             <button
@@ -122,7 +121,7 @@ export default function CumulativePnlChart({ strategyTrades }: { strategyTrades:
       <div style={{ padding: '8px 14px', borderBottom: '1px solid var(--border)', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {strategyTrades.map(s => {
           const isHidden = hidden.has(s.name);
-          const color = strategyColor(s.name);
+          const color = resolveColor(s.name);
           return (
             <button
               key={s.name}
@@ -176,7 +175,7 @@ export default function CumulativePnlChart({ strategyTrades }: { strategyTrades:
                   key={s.name}
                   type="monotone"
                   dataKey={s.name}
-                  stroke={strategyColor(s.name)}
+                  stroke={resolveColor(s.name)}
                   strokeWidth={1.5}
                   dot={false}
                   activeDot={{ r: 3 }}

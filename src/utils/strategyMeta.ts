@@ -43,6 +43,19 @@ export function strategyColor(name: string): string {
   return STRATEGY_COLORS[name] ?? '#7a8fa6';
 }
 
+// Distinct colours per interval, used by the Cross-Interval tab.
+export const INTERVAL_COLORS: Record<string, string> = {
+  '15m': '#00e676',
+  '1h':  '#4fc3f7',
+  '4h':  '#ffb800',
+  '1d':  '#ff7043',
+  '1w':  '#ce93d8',
+};
+
+export function intervalColor(label: string): string {
+  return INTERVAL_COLORS[label] ?? '#7a8fa6';
+}
+
 // Fallback list used for nav rendering before API data loads
 export const KNOWN_STRATEGIES: { name: string; displayName: string }[] = [
   { name: 'EMA_CROSSOVER',  displayName: 'EMA Crossover'   },
