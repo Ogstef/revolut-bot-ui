@@ -159,6 +159,21 @@ export interface Signal {
   createdAt: string;
 }
 
+export interface CurrentSignal {
+  pair: string;
+  interval: string;
+  strategy: StrategyName;
+  displayName: string;
+  signalType: 'BUY' | 'SELL' | 'HOLD' | null;
+  confidence: number | null;
+  reason: string | null;
+  currentPrice: number | null;
+  emaShort: number | null;
+  emaLong: number | null;
+  rsi: number | null;
+  evaluatedAt: string | null;
+}
+
 export interface FearGreed {
   value: number;           // 0–100
   classification: string;  // "Extreme Fear" | "Fear" | "Neutral" | "Greed" | "Extreme Greed"

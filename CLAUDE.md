@@ -125,6 +125,7 @@ Top-level views:
 - **Overview** — all 12 strategies for the selected pair + interval, side by side, plus a cross-interval comparison section
 - **Portfolio** — aggregated view across all strategies (optionally across all intervals)
 - **History** — forensic per-(pair, strategy, interval) trade-by-trade analytics with date filters, KPI strip, equity/drawdown chart, monthly heatmap, exit-reason donut, duration histogram, R-multiple distribution, day×hour heatmap, streak timeline, and a sortable/filterable/expandable trade table (see Page 3 below)
+- **Signals** — full `pair × strategy × interval` matrix of the latest signal each strategy has produced, with a click-to-expand reason, confidence, indicators, and relative timestamp. Ignores the global pair/interval selectors (shows everything at once). Backed by `GET /api/signals/current` + `useCurrentSignals` hook; rendered by `src/pages/CurrentSignalsPage.tsx`.
 - **Strategy tabs** — one tab per strategy, scoped to the selected pair + interval
 
 ---
@@ -504,6 +505,7 @@ useQuery({
 | `/api/strategies/{name}/stats?pair=&interval=` | 60s | Slow moving |
 | `/api/strategies/{name}/pnl?pair=&interval=` | 60s | Slow moving |
 | `/api/signals/summary?pair=&interval=` | 60s | Signal frequency chart |
+| `/api/signals/current` | 30s | Signals tab (matrix view) — fetched without params to get the full matrix |
 | `/api/market/fear-greed` | 3600s | Cached hourly |
 
 Use `refetchIntervalInBackground: false` — pause polling when the tab is hidden.
@@ -633,3 +635,411 @@ function toCumulativePnl(trades: Trade[]) {
 - **Expectancy**: label as `€5.32 per trade` — most important single number
 - **Circuit breaker active**: red warning badge on strategy card and tab label. Never hide it.
 - **Pair dropdown**: show `BTC/EUR` style (slash format) as the label, send `BTC-EUR` (hyphen) to API
+
+---
+
+## Phase 13 — Fee & Slippage Surfacing (Frontend)
+
+**Goal:** Expose the net-after-fees picture that backend Phase 13 now produces — per-trade, per-strategy, and portfolio-wide. After this phase the user can answer at a glance:
+
+1. **Am I actually growing the balance?** — Net P&L on every trade, stats card, chart, and portfolio summary.
+2. **Which strategies are fee victims?** — `feeDragPct` and gross-vs-net side-by-side in the Leaderboard and Overview cards.
+3. **What am I paying to trade?** — Total fees + slippage per strategy, broken down into entry/exit components on every closed trade row.
+
+**Companion phase:** this work MUST ship in the same PR as backend Phase 13 because `/api/strategies/{name}/pnl` changes shape (breaking). All other additions are additive and safe to land incrementally.
+
+> **Pre-read:** [`../revolut-trading-bot/CLAUDE.md`](../revolut-trading-bot/CLAUDE.md) → Phase 13 for the DTO shapes the backend is sending. The exact JSON is mirrored in `../API_CONTRACT.md` — that file is the source of truth.
+
+---
+
+### Current state (verified)
+
+- API client is a single file: `src/api/client.ts` — `Trade`, `Position`, `Stats`, `TradeHistoryEntry` types defined here.
+- Per-resource fetch functions in `src/api/strategies.ts`, `src/api/signals.ts`, `src/api/fearGreed.ts` (etc.).
+- Data fetching: TanStack Query. Per-resource hooks under `src/hooks/` (`useStrategies`, `useStrategyDetail`, …). Pair/interval come from `PairContext` (`src/context/PairContext.tsx`).
+- Formatting: `src/utils/format.ts` (`formatPnl`, `formatPct`, `formatPrice`, `formatQty`). Use these everywhere — do not introduce new ad-hoc formatters.
+- Styling: Tailwind + CSS custom properties in `src/index.css`. Classes like `.badge`, `.card`, `.data-table`, `.value-lg`. **No Styled Components, no CSS modules.**
+- Charts: Recharts. Existing P&L chart at `src/components/portfolio/PnlByStrategyChart.tsx`.
+- Testing: none configured yet. Phase 13 does not introduce tests — note this as a known gap.
+
+---
+
+### Design decisions (locked)
+
+- **Additive, not destructive.** `pnl` / `pnlPct` on `Trade` stay as **gross**. `netPnl` / `netPnlPct` are new fields. Existing UI labelled "Total PnL" etc. is now "Total Gross PnL" — add a sibling "Net PnL" line, don't swap.
+- **Portfolio summary + Leaderboard headline number becomes NET.** If the user only reads one number, it's the honest one. Gross is shown secondary in smaller text.
+- **Trade table: one new column "Net" (with entry+exit fee/slippage visible in the expanded row).** Do not spawn four new columns per row — that's noise.
+- **Fee drag is a first-class metric.** It gets its own chip with a three-tier colour scale (green ≤ 25%, amber 25–75%, red > 75% or > 100% = fee victim).
+- **One new page is NOT needed.** Fees integrate into existing Overview / Strategy Detail / Portfolio / History pages.
+- **No new chart library.** Reuse Recharts. `PnlByStrategyChart` becomes a grouped bar chart (gross vs net).
+
+---
+
+### Step 1 — Types (`src/api/client.ts`)
+
+Extend three existing types and add one new:
+
+```ts
+export type Trade = {
+  id: number
+  pair: string
+  side: 'BUY' | 'SELL'
+  entryPrice: number
+  exitPrice: number | null
+  quantity: number
+  pnl: number | null              // GROSS — semantics unchanged
+  pnlPct: number | null
+  // NEW — may be null for open trades
+  netPnl: number | null
+  netPnlPct: number | null
+  entryFee: number
+  exitFee: number
+  entrySlippage: number
+  exitSlippage: number
+  exitReason: string | null
+  strategyName: string
+  tradingMode: 'PAPER' | 'LIVE'
+  executedAt: string
+  closedAt: string | null
+}
+
+export type Position = {
+  id: number
+  pair: string
+  side: 'BUY' | 'SELL'
+  entryPrice: number
+  quantity: number
+  takeProfit: number
+  stopLoss: number
+  currentPrice: number
+  unrealisedPnl: number
+  unrealisedPnlPct: number
+  signalReason: string
+  openedAt: string
+  // NEW
+  entryFee: number
+  entrySlippage: number
+}
+
+export type Stats = {
+  totalTrades: number
+  winningTrades: number
+  losingTrades: number
+  winRate: number
+  totalPnl: number                // GROSS — semantics unchanged
+  averageWin: number
+  averageLoss: number
+  bestTrade: number
+  worstTrade: number
+  expectancy: number
+  // NEW
+  grossPnl: number                // alias of totalPnl for clarity
+  netPnl: number
+  totalFees: number
+  totalSlippage: number
+  feeDragPct: number              // 0..∞ — > 100 means net-negative despite gross-positive
+  netExpectancy: number
+}
+
+export type FeeSummary = {
+  totalFees: number
+  totalSlippage: number
+  avgFeePerTrade: number
+  feePctOfNotional: number        // already multiplied by 100
+  tradeCount: number
+}
+
+// PnlBreakdown is now { gross, net } per period (BREAKING change)
+export type PnlPeriodValue = { gross: number; net: number }
+export type PnlBreakdown = {
+  daily: PnlPeriodValue
+  weekly: PnlPeriodValue
+  monthly: PnlPeriodValue
+  allTime: PnlPeriodValue
+}
+```
+
+Also extend `TradeHistoryEntry` (in `src/api/client.ts` around the existing definition) to include the same six new fields — the forensic history view needs them.
+
+---
+
+### Step 2 — API client functions (`src/api/strategies.ts`)
+
+Add one function. Nothing else changes; the existing `fetchStrategyStats`, `fetchStrategyTrades`, `fetchStrategyPositions`, `fetchStrategyPnl` automatically return the extended DTOs because the types grow.
+
+```ts
+export function fetchStrategyFees(name: string, pair: string, interval: string): Promise<FeeSummary> {
+  return request<FeeSummary>(
+    `/api/strategies/${name}/fees?pair=${encodeURIComponent(pair)}&interval=${encodeURIComponent(interval)}`
+  )
+}
+```
+
+---
+
+### Step 3 — Query hook (`src/hooks/useStrategyFees.ts`, new file)
+
+```ts
+import { useQuery } from '@tanstack/react-query'
+import { fetchStrategyFees } from '../api/strategies'
+import { usePair } from '../context/PairContext'
+
+export function useStrategyFees(strategyName: string) {
+  const { selectedPair, selectedInterval } = usePair()
+  return useQuery({
+    queryKey: ['strategy-fees', strategyName, selectedPair, selectedInterval],
+    queryFn:  () => fetchStrategyFees(strategyName, selectedPair, selectedInterval),
+    refetchInterval: 60_000,                // fees change slowly
+    refetchIntervalInBackground: false,
+  })
+}
+```
+
+Also add a parallel variant mirroring the existing `useAllStrategyStats` pattern in `src/hooks/useStrategies.ts`:
+
+```ts
+export function useAllStrategyFees(strategyNames: string[]) {
+  // useQueries — one per strategy, same key shape as useStrategyFees
+}
+```
+
+---
+
+### Step 4 — Formatters (`src/utils/format.ts`)
+
+Add three helpers. Do NOT inline formatting anywhere else.
+
+```ts
+/** Fees / slippage in EUR. Always shown as a cost, i.e. red when > 0, grey when 0. */
+export function formatFee(eur: number): string {
+  return eur === 0 ? '—' : `€${eur.toFixed(2)}`
+}
+
+/** Fee drag percentage. Rounded to one decimal. */
+export function formatFeeDrag(pct: number): string {
+  return `${pct.toFixed(1)}%`
+}
+
+/** Classifies fee drag into a colour tier. Used for CSS class suffix. */
+export function feeDragTier(pct: number): 'low' | 'mid' | 'high' | 'victim' {
+  if (pct > 100) return 'victim'
+  if (pct > 75)  return 'high'
+  if (pct > 25)  return 'mid'
+  return 'low'
+}
+```
+
+---
+
+### Step 5 — CSS additions (`src/index.css`)
+
+Append to the existing utility block:
+
+```css
+.fee-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.fee-chip.tier-low    { background: color-mix(in srgb, var(--green) 15%, transparent); color: var(--green); }
+.fee-chip.tier-mid    { background: color-mix(in srgb, var(--amber) 18%, transparent); color: var(--amber); }
+.fee-chip.tier-high   { background: color-mix(in srgb, var(--red)   18%, transparent); color: var(--red); }
+.fee-chip.tier-victim { background: var(--red); color: white; }  /* stands out */
+
+.pnl-pair { display: inline-flex; flex-direction: column; line-height: 1.1; }
+.pnl-pair .net   { font-weight: 600; }
+.pnl-pair .gross { font-size: 0.75rem; color: var(--text-secondary); }
+```
+
+`.pnl-pair` is reused wherever we stack Net (primary) over Gross (secondary).
+
+---
+
+### Step 6 — `StatsPanel.tsx` (`src/components/StatsPanel.tsx`)
+
+Extend the existing grid. The current layout: Expectancy headline, Win Rate bar, Total PnL, Avg Win, Best, Worst (2×2), PnL Breakdown (4-col).
+
+Changes:
+- **"Total PnL" card** → rename to **"Net PnL"** (primary, large) with a "Gross: €X.XX" subtitle in the same card.
+- **Expectancy headline** → show `netExpectancy` as the primary number, `expectancy` (gross) as the small subtitle.
+- **Add a new card row beneath Best/Worst**: three tiles — **Total Fees** (`formatFee(totalFees)`), **Total Slippage** (`formatFee(totalSlippage)`), **Fee Drag** (`<span class="fee-chip tier-{feeDragTier(feeDragPct)}">{formatFeeDrag(feeDragPct)}</span>`).
+- **PnL Breakdown section** → each period renders `<div class="pnl-pair"><span class="net">{formatPnl(v.net)}</span><span class="gross">gross {formatPnl(v.gross)}</span></div>`.
+
+---
+
+### Step 7 — `TradeHistoryTable.tsx` (`src/components/history/TradeHistoryTable.tsx`)
+
+**Columns** — add one, keep layout tight:
+- Existing columns stay: ID · Side · Opened · Closed · Duration · Entry · Exit · PnL · % · R-Mult · Reason · Mode.
+- **PnL column** → renders `.pnl-pair` (Net primary, Gross small). Sort on `netPnl`.
+
+**Expanded row** — add a "Costs" section alongside the existing detail block:
+
+```
+Costs:
+  Entry fee: €0.18    Exit fee: €0.19
+  Entry slippage: €0.16    Exit slippage: €0.17
+  Total cost: €0.70    Net PnL: +€9.30    Gross PnL: +€10.00
+```
+
+Use `formatFee` and `formatPnl`. Colour the row background subtly red if `netPnl < 0 && pnl > 0` (fee-victim trade) — useful signal.
+
+---
+
+### Step 8 — `AllTradesTable.tsx` (`src/components/portfolio/AllTradesTable.tsx`)
+
+Same column change as `TradeHistoryTable`: swap the PnL cell for `.pnl-pair`. No expandable row here — keep it compact. Sort by `netPnl` by default.
+
+---
+
+### Step 9 — `AllPositionsTable.tsx` + `OpenPositions.tsx`
+
+Open positions don't have exit fees yet (they haven't paid them). Add only one inline piece of information so the user sees the "sunk" entry cost.
+
+- **`src/components/portfolio/AllPositionsTable.tsx`** — new column **"Entry Cost"** = `formatFee(entryFee + entrySlippage)`. Tooltip on hover: "Fee €0.09 + slippage €0.08".
+- **`src/components/strategy/OpenPositions.tsx`** — same column in the strategy-scoped table.
+
+Leave the TP/SL progress bars untouched.
+
+---
+
+### Step 10 — `LeaderboardTable.tsx` (`src/components/overview/LeaderboardTable.tsx`)
+
+Replace "Total PnL" column with `.pnl-pair` (Net primary, Gross small). Add two new columns:
+
+- **Fee Drag** — `<span class="fee-chip tier-…">{formatFeeDrag(feeDragPct)}</span>`
+- **Net Expectancy** — `formatPnl(netExpectancy)` + " / trade"
+
+Highlight the top row per column as today — apply this to the new columns as well. Default sort becomes `netPnl DESC`.
+
+---
+
+### Step 11 — `StrategyCard.tsx` (`src/components/overview/StrategyCard.tsx`)
+
+Each card shows a 2×2 mini-grid. Current tiles: Daily PnL · Open Pos · Win Rate · Consec Loss (+ circuit-breaker state).
+
+Small change:
+- **Daily PnL tile** → headline becomes **Net Daily PnL** using `.pnl-pair`; gross subtitle shown below. Backend sends `dailyPnl` on `/api/strategies` as gross for backward-compat — the card pulls the net figure from `useStrategyPnl(name).data?.daily.net` (already available via the hook, no new fetch needed).
+- **Fee drag chip** — added as a small badge beneath the circuit-breaker chip so fee victims are visible at a glance on the grid.
+
+No other layout changes.
+
+---
+
+### Step 12 — `PortfolioSummary.tsx` (`src/components/portfolio/PortfolioSummary.tsx`)
+
+Headline bar currently shows All-Time PnL · Daily PnL · Unrealized · Open Positions · Win Rate. Modify:
+
+- **All-Time PnL** and **Daily PnL** → `.pnl-pair` (net primary, gross secondary).
+- **New tile** between "Unrealized" and "Open Positions": **Total Fees (all-time)**, summed across all strategies/pairs. Data source: sum `stats.totalFees + stats.totalSlippage` across all `(pair, strategy, interval)` combinations already fetched by `useAllStrategyStats`.
+
+Keep the bar single-row — use tighter spacing if necessary.
+
+---
+
+### Step 13 — `PnlByStrategyChart.tsx` (`src/components/portfolio/PnlByStrategyChart.tsx`)
+
+Currently a `<BarChart>` with one `<Bar dataKey="totalPnl">` per strategy.
+
+Change to a grouped bar chart:
+
+```tsx
+<Bar dataKey="grossPnl" fill="var(--text-secondary)" name="Gross" />
+<Bar dataKey="netPnl"   fill="var(--green)"          name="Net"   />
+```
+
+Bars with `netPnl < 0` should use `var(--red)` via a `<Cell>` conditional. Tooltip shows both values plus fee drag: "Gross €142.80 · Net €135.90 · Fee drag 4.8%".
+
+Legend at the top with both keys.
+
+---
+
+### Step 14 — New component: `FeeBreakdownCard.tsx` (`src/components/strategy/FeeBreakdownCard.tsx`)
+
+Small card for the Strategy Detail page — sits in the right column near `PnlBreakdown`. Shows the `/fees` endpoint output.
+
+```
+┌──────────────────────────────────────┐
+│  Trading Costs                       │
+├──────────────────────────────────────┤
+│  Total fees:          €3.42          │
+│  Total slippage:      €3.04          │
+│  Avg per trade:       €0.19          │
+│  Fees / notional:     0.17 %         │
+│  Trades counted:      34             │
+│  [FEE DRAG CHIP]                     │
+└──────────────────────────────────────┘
+```
+
+Uses `useStrategyFees(strategyName)`. Skeleton state while loading.
+
+Wire into `src/pages/StrategyPage.tsx` — add beneath `PnlBreakdown` in the right column.
+
+---
+
+### Step 15 — `History` page KPI strip (`src/pages/HistoryPage.tsx` or equivalent)
+
+The KPI strip already has 8 cards including "Net PnL". Wire that card to the new `netPnl` value instead of computing it client-side from gross. Add a 9th chip: **Fee Drag** using the `.fee-chip tier-*` pattern.
+
+---
+
+### Step 16 — `API_CONTRACT.md` update (shared PR)
+
+Done in the same PR as the backend changes (documented in backend Phase 13 Step 9). Do **not** duplicate contract definitions here — this CLAUDE.md references the contract, it doesn't own it.
+
+---
+
+### Explicit non-goals
+
+- **No new top-level page.** Fees live inside existing Overview, Strategy Detail, Portfolio, and History pages.
+- **No chart library swap.** Stick with Recharts.
+- **No per-trade slippage chart.** A single grouped bar chart + expanded trade row is enough.
+- **No retroactive audit log UI.** The backend's V7 backfill at a flat rate is documented in the backend CLAUDE.md; no UI surface needed.
+- **No formatting library.** Use the existing `src/utils/format.ts` helpers.
+- **No test harness bootstrap.** If Vitest is not configured, skip tests — add `// TODO: add tests once Vitest configured` notes on components with non-trivial logic (`feeDragTier`, the `.pnl-pair` component).
+- **No changes to Phase 12 sentiment surfaces.**
+
+---
+
+### Verification checklist
+
+1. **Type compile:** `tsc --noEmit` passes after extending `Trade`, `Position`, `Stats`, `PnlBreakdown`, `TradeHistoryEntry` and adding `FeeSummary`.
+2. **`/fees` endpoint wired:** open any Strategy Detail page; `Network` tab shows `GET /api/strategies/{name}/fees?pair=&interval=` being polled every 60 s; `FeeBreakdownCard` renders real numbers.
+3. **PnlBreakdown shape migration:** no `TypeError: v.toFixed is not a function` anywhere — every consumer of `/pnl` reads `.net` / `.gross`.
+4. **Trade table:** PnL column shows Net on top, Gross (smaller, secondary) below. Expanded row shows all four fee/slippage values.
+5. **Fee-victim row highlight:** find (or fabricate in dev) a trade where `pnl > 0 && netPnl < 0` — the row background tints red.
+6. **Overview cards:** daily PnL headline uses net; gross shown secondary. Fee drag chip visible on at least one card after some trades close.
+7. **Leaderboard:** default sort is `netPnl DESC`. `Fee Drag` and `Net Expectancy` columns present and sortable.
+8. **Portfolio summary:** all-time PnL shows net (large) + gross (small). Total fees tile renders a number aggregated across strategies.
+9. **Grouped bar chart:** `PnlByStrategyChart` shows two bars per strategy; net bars go red when `netPnl < 0`.
+10. **Backward compatibility:** existing sentiment panel from Phase 12 unchanged; `/api/market/fear-greed` unaffected; all non-fee endpoints render identically.
+
+---
+
+### Implementation order (ship incrementally)
+
+1. Types in `client.ts` + new `FeeSummary`.
+2. `fetchStrategyFees` + `useStrategyFees` + `useAllStrategyFees`.
+3. `format.ts` helpers + `index.css` additions.
+4. `StatsPanel` (most consumers look here first).
+5. `PortfolioSummary` + `LeaderboardTable` (headline numbers).
+6. `TradeHistoryTable` + `AllTradesTable`.
+7. `AllPositionsTable` + `OpenPositions` entry-cost column.
+8. `StrategyCard` net daily + fee-drag chip.
+9. `PnlByStrategyChart` grouped bars.
+10. `FeeBreakdownCard` + slot into `StrategyPage`.
+11. `HistoryPage` KPI strip tweak.
+12. Smoke-test against a backend running with fees enabled.
+
+Each step is isolated; commits can land one at a time. Step 1 and the `/pnl` shape change (Step 6 consumers) are the only parts that MUST ship together with the backend PR.
+
+---
+
+### Milestone
+
+Every P&L number a user sees on the dashboard is now the honest one: post-fee, post-slippage. Gross is still visible as context, but net leads. Fee-victim strategies are flagged on the Leaderboard, on the Overview cards, and with tinted rows in the trade table. Opening the Strategy Detail page shows exactly how many euros each strategy is paying Revolut — so when the user widens position sizing or tunes TP/SL, they can see in real time whether the edge survives the costs.
