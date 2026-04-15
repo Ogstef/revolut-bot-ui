@@ -10,6 +10,7 @@ import OverviewPage from './pages/OverviewPage';
 import StrategyPage from './pages/StrategyPage';
 import PortfolioPage from './pages/PortfolioPage';
 import HistoryPage from './pages/HistoryPage';
+import CurrentSignalsPage from './pages/CurrentSignalsPage';
 
 function AppInner() {
   const [activeTab, setActiveTab] = useState<string>('overview');
@@ -69,6 +70,8 @@ function AppInner() {
             <PortfolioPage />
           ) : activeTab === 'history' ? (
             <HistoryPage />
+          ) : activeTab === 'signals' ? (
+            <CurrentSignalsPage onSelectStrategy={setActiveTab} />
           ) : (
             <StrategyPage
               strategyName={activeTab}

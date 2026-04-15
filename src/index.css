@@ -211,6 +211,24 @@ body::before {
 .input:focus { border-color: var(--border-bright); }
 .input::placeholder { color: var(--text-muted); }
 
+.strategy-link {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  letter-spacing: 0.04em;
+}
+.strategy-link:hover { color: var(--green); }
+
+.expanded-row td {
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border);
+}
+
 .progress-bar {
   height: 3px;
   background: var(--border);
