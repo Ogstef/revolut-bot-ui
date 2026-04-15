@@ -11,6 +11,9 @@ import StrategyPage from './pages/StrategyPage';
 import PortfolioPage from './pages/PortfolioPage';
 import HistoryPage from './pages/HistoryPage';
 import CurrentSignalsPage from './pages/CurrentSignalsPage';
+import PositionsLivePage from './pages/PositionsLivePage';
+import LeaderboardPage from './pages/LeaderboardPage';
+import ActivityFeedPage from './pages/ActivityFeedPage';
 
 function AppInner() {
   const [activeTab, setActiveTab] = useState<string>('overview');
@@ -72,6 +75,12 @@ function AppInner() {
             <HistoryPage />
           ) : activeTab === 'signals' ? (
             <CurrentSignalsPage onSelectStrategy={setActiveTab} />
+          ) : activeTab === 'positions' ? (
+            <PositionsLivePage onSelectStrategy={setActiveTab} />
+          ) : activeTab === 'leaderboard' ? (
+            <LeaderboardPage onSelectStrategy={setActiveTab} />
+          ) : activeTab === 'activity' ? (
+            <ActivityFeedPage onSelectStrategy={setActiveTab} />
           ) : (
             <StrategyPage
               strategyName={activeTab}

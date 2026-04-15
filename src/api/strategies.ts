@@ -1,5 +1,5 @@
 import { request } from './client';
-import type { StrategyName, StrategyInfo, Position, Trade, Stats, PnlBreakdown, ConfigUpdate } from './client';
+import type { StrategyName, StrategyInfo, Position, Trade, Stats, PnlBreakdown, ConfigUpdate, TripleStats } from './client';
 
 function qs(pair: string, interval?: string, extra?: Record<string, string | number>): string {
   const parts: string[] = [`pair=${encodeURIComponent(pair)}`];
@@ -24,6 +24,9 @@ export const fetchStats = (name: StrategyName, pair: string, interval?: string) 
 
 export const fetchPnl = (name: StrategyName, pair: string, interval?: string) =>
   request<PnlBreakdown>(`/api/strategies/${name}/pnl?${qs(pair, interval)}`);
+
+export const fetchAllTripleStats = () =>
+  request<TripleStats[]>(`/api/stats/all-triples`);
 
 export const updateConfig = (cfg: ConfigUpdate) =>
   request<string>('/api/config', { method: 'POST', body: JSON.stringify(cfg) });

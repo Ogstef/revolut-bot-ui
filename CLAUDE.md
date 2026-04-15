@@ -126,6 +126,9 @@ Top-level views:
 - **Portfolio** — aggregated view across all strategies (optionally across all intervals)
 - **History** — forensic per-(pair, strategy, interval) trade-by-trade analytics with date filters, KPI strip, equity/drawdown chart, monthly heatmap, exit-reason donut, duration histogram, R-multiple distribution, day×hour heatmap, streak timeline, and a sortable/filterable/expandable trade table (see Page 3 below)
 - **Signals** — full `pair × strategy × interval` matrix of the latest signal each strategy has produced, with a click-to-expand reason, confidence, indicators, and relative timestamp. Ignores the global pair/interval selectors (shows everything at once). Backed by `GET /api/signals/current` + `useCurrentSignals` hook; rendered by `src/pages/CurrentSignalsPage.tsx`.
+- **Positions** — single sortable table of every OPEN position across every triple with live unrealised PnL, TP/SL progress, and time-in-position. Row click jumps to the strategy's detail tab. Backed by `GET /api/positions/live` + `useLivePositions` (15s polling); rendered by `src/pages/PositionsLivePage.tsx`.
+- **Leaderboard** — pair × interval heatmap per strategy plus a sortable 180-row ranked table. Top-3 highlights on key columns (`totalPnl`, `winRate`, `expectancy`, `bestTrade`), multi-select filter chips for pair / interval / strategy. Backed by `GET /api/stats/all-triples` + `useAllTripleStats` (30s polling); rendered by `src/pages/LeaderboardPage.tsx` + `src/components/leaderboard/TripleHeatmap.tsx`.
+- **Activity** — reverse-chronological severity-tinted feed of bot lifecycle events (position opens/closes, circuit-breaker transitions, emergency stop/resume, config changes). Category filter chips (`All` / `Positions` / `Risk` / `System`) forward `?types=` to the backend for deeper history. Backed by `GET /api/activity` + `useActivityFeed` (15s polling); rendered by `src/pages/ActivityFeedPage.tsx`.
 - **Strategy tabs** — one tab per strategy, scoped to the selected pair + interval
 
 ---
@@ -506,6 +509,9 @@ useQuery({
 | `/api/strategies/{name}/pnl?pair=&interval=` | 60s | Slow moving |
 | `/api/signals/summary?pair=&interval=` | 60s | Signal frequency chart |
 | `/api/signals/current` | 30s | Signals tab (matrix view) — fetched without params to get the full matrix |
+| `/api/positions/live` | 15s | Positions tab (live across all triples) |
+| `/api/stats/all-triples` | 30s | Leaderboard tab (ranked triples + heatmap) |
+| `/api/activity` | 15s | Activity feed tab |
 | `/api/market/fear-greed` | 3600s | Cached hourly |
 
 Use `refetchIntervalInBackground: false` — pause polling when the tab is hidden.

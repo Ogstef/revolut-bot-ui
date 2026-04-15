@@ -36,7 +36,7 @@ export default function PortfolioPage() {
   }
 
   // Flatten all positions with strategy label
-  const flatPositions: (Position & { strategyName: string; strategyDisplayName: string })[] = useMemo(() =>
+  const flatPositions: (Omit<Position, 'strategyName'> & { strategyName: string; strategyDisplayName: string })[] = useMemo(() =>
     allPositions.flatMap(s =>
       (s.query.data ?? []).map(p => ({
         ...p,
