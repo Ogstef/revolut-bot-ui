@@ -1,6 +1,27 @@
-import type { TradeHistoryEntry } from '../api/client';
+import type { Trade, TradeHistoryEntry } from '../api/client';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
+
+/**
+ * Convert a list of trades into a cumulative PnL series for Recharts.
+ * When `cutoff` is provided, trades closed before it are filtered out.
+ */
+export function toCumulativePnl(
+  trades: Trade[],
+  cutoff?: Date,
+): { date: number; pnl: number }[] {
+  const filtered = cutoff
+    ? trades.filter(t => new Date(t.closedAt ?? t.executedAt) >= cutoff)
+    : trades;
+  const sorted = [...filtered].sort(
+    (a, b) => new Date(a.closedAt ?? a.executedAt).getTime() - new Date(b.closedAt ?? b.executedAt).getTime(),
+  );
+  let running = 0;
+  return sorted.map(t => ({
+    date: new Date(t.closedAt ?? t.executedAt).getTime(),
+    pnl: parseFloat((running += t.pnl ?? 0).toFixed(2)),
+  }));
+}
 
 /** Trades in chronological order (oldest -> newest), filtered to ones with a numeric pnl. */
 export function chronological(trades: TradeHistoryEntry[]): TradeHistoryEntry[] {

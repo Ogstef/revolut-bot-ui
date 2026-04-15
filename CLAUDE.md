@@ -129,6 +129,8 @@ Top-level views:
 - **Positions** — single sortable table of every OPEN position across every triple with live unrealised PnL, TP/SL progress, and time-in-position. Row click jumps to the strategy's detail tab. Backed by `GET /api/positions/live` + `useLivePositions` (15s polling); rendered by `src/pages/PositionsLivePage.tsx`.
 - **Leaderboard** — pair × interval heatmap per strategy plus a sortable 180-row ranked table. Top-3 highlights on key columns (`totalPnl`, `winRate`, `expectancy`, `bestTrade`), multi-select filter chips for pair / interval / strategy. Backed by `GET /api/stats/all-triples` + `useAllTripleStats` (30s polling); rendered by `src/pages/LeaderboardPage.tsx` + `src/components/leaderboard/TripleHeatmap.tsx`.
 - **Activity** — reverse-chronological severity-tinted feed of bot lifecycle events (position opens/closes, circuit-breaker transitions, emergency stop/resume, config changes). Category filter chips (`All` / `Positions` / `Risk` / `System`) forward `?types=` to the backend for deeper history. Backed by `GET /api/activity` + `useActivityFeed` (15s polling); rendered by `src/pages/ActivityFeedPage.tsx`.
+- **Consensus** — for each `(pair, interval)`, aggregate the 12 current strategy signals into BUY / HOLD / SELL counts plus a confidence-weighted signed score (−100..+100). Reuses `GET /api/signals/current`; rendered by `src/pages/ConsensusPage.tsx` + `src/components/consensus/{ConsensusCard,ScoreMeter}.tsx`.
+- **Cross-Interval** — for a chosen `(pair, strategy)`, compare all 5 configured intervals side-by-side (stats strip + overlaid equity curve). Uses global pair selector + local strategy chip row. Reuses `GET /api/stats/all-triples` + `GET /api/strategies/{name}/trades` (fanned 5 ways via new `useAllIntervalTrades` hook). Rendered by `src/pages/CrossIntervalPage.tsx`.
 - **Strategy tabs** — one tab per strategy, scoped to the selected pair + interval
 
 ---
@@ -508,9 +510,10 @@ useQuery({
 | `/api/strategies/{name}/stats?pair=&interval=` | 60s | Slow moving |
 | `/api/strategies/{name}/pnl?pair=&interval=` | 60s | Slow moving |
 | `/api/signals/summary?pair=&interval=` | 60s | Signal frequency chart |
-| `/api/signals/current` | 30s | Signals tab (matrix view) — fetched without params to get the full matrix |
+| `/api/signals/current` | 30s | Signals tab (matrix view) + Consensus tab (same cache key) |
 | `/api/positions/live` | 15s | Positions tab (live across all triples) |
-| `/api/stats/all-triples` | 30s | Leaderboard tab (ranked triples + heatmap) |
+| `/api/stats/all-triples` | 30s | Leaderboard + Cross-Interval tabs (same cache key) |
+| `/api/strategies/{name}/trades` (× 5 intervals) | 30s | Cross-Interval tab — fanned out via `useAllIntervalTrades` |
 | `/api/activity` | 15s | Activity feed tab |
 | `/api/market/fear-greed` | 3600s | Cached hourly |
 
