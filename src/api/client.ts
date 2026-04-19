@@ -22,7 +22,8 @@ export type StrategyName =
   | 'CCI'
   | 'MFI'
   | 'DONCHIAN'
-  | 'ICHIMOKU';
+  | 'ICHIMOKU'
+  | 'SUPERTREND';
 
 export interface BotStatus {
   running: boolean;

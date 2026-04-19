@@ -17,6 +17,7 @@ const META: Record<string, IndicatorMeta> = {
   MFI:            { emaShortLabel: null,          emaLongLabel: null,         rsiLabel: 'MFI'        },
   DONCHIAN:       { emaShortLabel: 'Upper',       emaLongLabel: 'Lower',      rsiLabel: 'Width %'    },
   ICHIMOKU:       { emaShortLabel: 'Tenkan',      emaLongLabel: 'Kijun',      rsiLabel: 'Span A'     },
+  SUPERTREND:     { emaShortLabel: 'Supertrend',  emaLongLabel: 'ATR',        rsiLabel: 'Distance %' },
 };
 
 export function getIndicatorMeta(strategyName: string): IndicatorMeta {
@@ -37,6 +38,7 @@ export const STRATEGY_COLORS: Record<string, string> = {
   MFI:            '#a5d6a7',
   DONCHIAN:       '#90caf9',
   ICHIMOKU:       '#ffcc80',
+  SUPERTREND:     '#26c6da',
 };
 
 export function strategyColor(name: string): string {
@@ -70,4 +72,5 @@ export const KNOWN_STRATEGIES: { name: string; displayName: string }[] = [
   { name: 'MFI',            displayName: 'Money Flow'      },
   { name: 'DONCHIAN',       displayName: 'Donchian'        },
   { name: 'ICHIMOKU',       displayName: 'Ichimoku'        },
+  { name: 'SUPERTREND',     displayName: 'Supertrend'      },
 ];
