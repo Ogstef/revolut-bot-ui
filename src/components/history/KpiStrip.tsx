@@ -1,5 +1,5 @@
 import type { TradeHistoryEntry } from '../../api/client';
-import { formatPnl } from '../../utils/format';
+import { formatPnl, formatFeeDrag, feeDragTier } from '../../utils/format';
 import {
   equityCurve, maxDrawdown, profitFactor, expectancy,
   avgHoldingSeconds, longestStreak, winRate, formatDuration,
@@ -11,7 +11,10 @@ export default function KpiStrip({ trades }: Props) {
   const closed = trades.filter(t => t.pnl != null);
   const total  = closed.length;
   const wr     = winRate(closed);
-  const netPnl = closed.reduce((acc, t) => acc + (t.pnl ?? 0), 0);
+  const netPnl = closed.reduce((acc, t) => acc + (t.netPnl ?? t.pnl ?? 0), 0);
+  const totalCosts = closed.reduce((acc, t) => acc + (t.entryFee ?? 0) + (t.exitFee ?? 0) + (t.entrySlippage ?? 0) + (t.exitSlippage ?? 0), 0);
+  const grossPnl = closed.reduce((acc, t) => acc + (t.pnl ?? 0), 0);
+  const feeDrag = grossPnl !== 0 ? (totalCosts / Math.abs(grossPnl)) * 100 : 0;
   const pf     = profitFactor(closed);
   const exp    = expectancy(closed);
   const avgHold = avgHoldingSeconds(closed);
@@ -64,6 +67,17 @@ export default function KpiStrip({ trades }: Props) {
           value={`${longestW}W / ${longestL}L`}
           color="var(--text-secondary)"
         />
+        {totalCosts > 0 && (
+          <>
+            <Divider />
+            <div style={{ padding: '10px 16px' }}>
+              <div className="label" style={{ marginBottom: 3 }}>Fee Drag</div>
+              <span className={`fee-chip tier-${feeDragTier(feeDrag)}`}>
+                {formatFeeDrag(feeDrag)}
+              </span>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

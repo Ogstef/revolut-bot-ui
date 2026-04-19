@@ -42,7 +42,7 @@ export interface EquityPoint { date: string; equity: number; }
 export function equityCurve(trades: TradeHistoryEntry[]): EquityPoint[] {
   let running = 0;
   return chronological(trades).map(t => {
-    running += t.pnl ?? 0;
+    running += (t.netPnl ?? t.pnl) ?? 0;
     return { date: t.closedAt ?? t.executedAt, equity: running };
   });
 }
@@ -70,14 +70,15 @@ export function maxDrawdown(equity: EquityPoint[]): number {
 
 // ─── Aggregates ────────────────────────────────────────────────────────────
 
-/** Σ winning PnL / |Σ losing PnL|. Infinity if no losses. */
+/** Σ winning PnL / |Σ losing PnL|. Infinity if no losses. Uses net PnL when available. */
 export function profitFactor(trades: TradeHistoryEntry[]): number {
   let wins = 0;
   let losses = 0;
   for (const t of trades) {
-    if (t.pnl == null) continue;
-    if (t.pnl >= 0) wins += t.pnl;
-    else losses += t.pnl;
+    const val = (t.netPnl ?? t.pnl);
+    if (val == null) continue;
+    if (val >= 0) wins += val;
+    else losses += val;
   }
   if (losses === 0) return wins > 0 ? Infinity : 0;
   return wins / Math.abs(losses);
@@ -86,7 +87,7 @@ export function profitFactor(trades: TradeHistoryEntry[]): number {
 export function expectancy(trades: TradeHistoryEntry[]): number {
   const closed = trades.filter(t => t.pnl != null);
   if (closed.length === 0) return 0;
-  const sum = closed.reduce((acc, t) => acc + (t.pnl ?? 0), 0);
+  const sum = closed.reduce((acc, t) => acc + ((t.netPnl ?? t.pnl) ?? 0), 0);
   return sum / closed.length;
 }
 
@@ -111,7 +112,7 @@ export function streaks(trades: TradeHistoryEntry[]): Streak[] {
   const out: Streak[] = [];
   let cur: Streak | null = null;
   for (const t of sorted) {
-    const type: 'W' | 'L' = (t.pnl ?? 0) >= 0 ? 'W' : 'L';
+    const type: 'W' | 'L' = ((t.netPnl ?? t.pnl) ?? 0) >= 0 ? 'W' : 'L';
     const ts = t.closedAt ?? t.executedAt;
     if (cur && cur.type === type) {
       cur.length += 1;
@@ -135,7 +136,7 @@ export function longestStreak(trades: TradeHistoryEntry[], type: 'W' | 'L'): num
 
 // ─── Monthly returns ───────────────────────────────────────────────────────
 
-/** Map "YYYY-MM" -> sum of PnL for trades closed (or executed if not closed) in that month. */
+/** Map "YYYY-MM" -> net sum of PnL for trades closed (or executed if not closed) in that month. */
 export function monthlyReturns(trades: TradeHistoryEntry[]): Map<string, number> {
   const out = new Map<string, number>();
   for (const t of trades) {
@@ -143,7 +144,7 @@ export function monthlyReturns(trades: TradeHistoryEntry[]): Map<string, number>
     const ref = t.closedAt ?? t.executedAt;
     const d = new Date(ref);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    out.set(key, (out.get(key) ?? 0) + t.pnl);
+    out.set(key, (out.get(key) ?? 0) + ((t.netPnl ?? t.pnl) ?? 0));
   }
   return out;
 }
@@ -258,7 +259,7 @@ export function exitReasonBreakdown(trades: TradeHistoryEntry[]): ExitReasonSlic
 export function winRate(trades: TradeHistoryEntry[]): number {
   const closed = trades.filter(t => t.pnl != null);
   if (closed.length === 0) return 0;
-  const wins = closed.filter(t => (t.pnl ?? 0) > 0).length;
+  const wins = closed.filter(t => ((t.netPnl ?? t.pnl) ?? 0) > 0).length;
   return (wins / closed.length) * 100;
 }
 

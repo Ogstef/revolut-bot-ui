@@ -64,12 +64,14 @@ export default function PortfolioPage() {
   }));
 
   // Portfolio-level aggregates
-  const totalUnrealized = flatPositions.reduce((s, p) => s + p.unrealisedPnl, 0);
-  const totalDailyPnl   = strategies.reduce((s, st) => s + (st.dailyPnl ?? 0), 0);
-  const totalAllTimePnl = strategyStats.reduce((s, st) => s + (st.stats?.totalPnl ?? 0), 0);
-  const totalTrades     = strategyStats.reduce((s, st) => s + (st.stats?.totalTrades ?? 0), 0);
-  const totalWins       = strategyStats.reduce((s, st) => s + (st.stats?.winningTrades ?? 0), 0);
-  const combinedWinRate = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
+  const totalUnrealized  = flatPositions.reduce((s, p) => s + p.unrealisedPnl, 0);
+  const totalDailyPnl    = strategies.reduce((s, st) => s + (st.dailyPnl ?? 0), 0);
+  const totalAllTimePnl  = strategyStats.reduce((s, st) => s + (st.stats?.totalPnl ?? 0), 0);
+  const netAllTimePnl    = strategyStats.reduce((s, st) => s + (st.stats?.netPnl ?? st.stats?.totalPnl ?? 0), 0);
+  const totalCosts       = strategyStats.reduce((s, st) => s + ((st.stats?.totalFees ?? 0) + (st.stats?.totalSlippage ?? 0)), 0);
+  const totalTrades      = strategyStats.reduce((s, st) => s + (st.stats?.totalTrades ?? 0), 0);
+  const totalWins        = strategyStats.reduce((s, st) => s + (st.stats?.winningTrades ?? 0), 0);
+  const combinedWinRate  = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
 
   const isLoading = allTrades.some(s => s.query.isLoading) || allPositions.some(s => s.query.isLoading);
 
@@ -94,6 +96,8 @@ export default function PortfolioPage() {
         openPositions={flatPositions.length}
         totalTrades={totalTrades}
         winRate={combinedWinRate}
+        netAllTimePnl={netAllTimePnl}
+        totalCosts={totalCosts}
       />
 
       {/* Charts row */}

@@ -70,8 +70,14 @@ export interface Trade {
   entryPrice: number;
   exitPrice: number;
   quantity: number;
-  pnl: number;
-  pnlPct: number;
+  pnl: number;           // gross
+  pnlPct: number;        // gross %
+  netPnl: number | null;
+  netPnlPct: number | null;
+  entryFee: number;
+  exitFee: number;
+  entrySlippage: number;
+  exitSlippage: number;
   exitReason: 'TP_HIT' | 'SL_HIT' | 'SIGNAL_EXIT' | 'MANUAL';
   strategyName: StrategyName;
   tradingMode: string;
@@ -91,8 +97,8 @@ export interface TradeHistoryEntry {
   entryPrice: number;
   exitPrice: number | null;
   quantity: number;
-  pnl: number | null;
-  pnlPct: number | null;
+  pnl: number | null;           // gross
+  pnlPct: number | null;        // gross %
   strategyName: StrategyName;
   exitReason: 'TP_HIT' | 'SL_HIT' | 'SIGNAL_EXIT' | 'MANUAL' | null;
   tradingMode: 'PAPER' | 'LIVE';
@@ -106,6 +112,13 @@ export interface TradeHistoryEntry {
   // Derived analytics
   holdingDurationSeconds: number | null;
   rMultiple: number | null;
+  // Cost fields
+  entryFee: number;
+  exitFee: number;
+  entrySlippage: number;
+  exitSlippage: number;
+  netPnl: number | null;
+  netPnlPct: number | null;
 }
 
 export interface Stats {
@@ -113,12 +126,17 @@ export interface Stats {
   winningTrades: number;
   losingTrades: number;
   winRate: number;
-  totalPnl: number;
+  totalPnl: number;      // gross
   averageWin: number;
   averageLoss: number;
   bestTrade: number;
   worstTrade: number;
   expectancy: number;
+  netPnl: number;
+  totalFees: number;
+  totalSlippage: number;
+  feeDragPct: number;
+  netExpectancy: number;
 }
 
 export interface PnlBreakdown {
@@ -126,6 +144,10 @@ export interface PnlBreakdown {
   weekly: number;
   monthly: number;
   allTime: number;
+  dailyNet: number;
+  weeklyNet: number;
+  monthlyNet: number;
+  allTimeNet: number;
 }
 
 export interface PairInfo {
@@ -202,7 +224,7 @@ export interface TripleStats {
   winningTrades: number;
   losingTrades: number;
   winRate: number;
-  totalPnl: number;
+  totalPnl: number;     // gross
   averageWin: number;
   averageLoss: number;
   bestTrade: number;
@@ -210,6 +232,10 @@ export interface TripleStats {
   expectancy: number;
   openPositions: number;
   circuitBreakerActive: boolean;
+  netPnl: number;
+  totalCosts: number;
+  feeDragPct: number;
+  netExpectancy: number;
 }
 
 export interface BotEvent {
@@ -223,6 +249,15 @@ export interface BotEvent {
   detail: string | null;
   metadata: string | null;
   createdAt: string;
+}
+
+export interface CandleBar {
+  time: number;    // Unix epoch seconds
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
 }
 
 export interface ConfigUpdate {

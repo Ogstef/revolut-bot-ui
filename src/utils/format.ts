@@ -39,6 +39,21 @@ export function formatDateTime(iso: string): string {
   });
 }
 
+export function formatFee(eur: number): string {
+  return eur === 0 ? '—' : `€${eur.toFixed(2)}`;
+}
+
+export function formatFeeDrag(pct: number): string {
+  return `${pct.toFixed(1)}%`;
+}
+
+export function feeDragTier(pct: number): 'low' | 'mid' | 'high' | 'victim' {
+  if (pct > 100) return 'victim';
+  if (pct > 75)  return 'high';
+  if (pct > 25)  return 'mid';
+  return 'low';
+}
+
 export function formatTimeAgo(iso: string): string {
   const then = new Date(iso).getTime();
   if (Number.isNaN(then)) return '—';

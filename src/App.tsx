@@ -16,6 +16,7 @@ import LeaderboardPage from './pages/LeaderboardPage';
 import ActivityFeedPage from './pages/ActivityFeedPage';
 import ConsensusPage from './pages/ConsensusPage';
 import CrossIntervalPage from './pages/CrossIntervalPage';
+import ChartsPage from './pages/ChartsPage';
 
 function AppInner() {
   const [activeTab, setActiveTab] = useState<string>('overview');
@@ -87,6 +88,8 @@ function AppInner() {
             <ConsensusPage onSelectStrategy={setActiveTab} />
           ) : activeTab === 'cross-interval' ? (
             <CrossIntervalPage />
+          ) : activeTab === 'charts' ? (
+            <ChartsPage />
           ) : (
             <StrategyPage
               strategyName={activeTab}
