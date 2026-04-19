@@ -310,3 +310,23 @@ body::before {
 .strategy-dot.hold { background: var(--amber); border-color: var(--amber); opacity: 0.5; }
 .strategy-dot.sell { background: var(--red);   border-color: var(--red); }
 .strategy-dot.null { background: transparent; }
+
+/* ── Fee & PnL pair ─────────────────────────────────────────────────────── */
+.fee-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.fee-chip.tier-low    { background: rgba(16,185,129,.15); color: var(--green); }
+.fee-chip.tier-mid    { background: rgba(251,191, 36,.18); color: var(--amber); }
+.fee-chip.tier-high   { background: rgba(239, 68, 68,.18); color: var(--red); }
+.fee-chip.tier-victim { background: var(--red); color: #fff; }
+
+.pnl-pair { display: inline-flex; flex-direction: column; line-height: 1.15; }
+.pnl-pair .net   { font-weight: 600; }
+.pnl-pair .gross { font-size: 0.72rem; color: var(--text-secondary); }

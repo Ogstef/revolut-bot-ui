@@ -1,13 +1,14 @@
 import type { StrategyInfo } from '../../api/client';
-import { formatPnl } from '../../utils/format';
+import { formatPnl, formatFeeDrag, feeDragTier } from '../../utils/format';
 
 interface Props {
   info: StrategyInfo;
   winRate?: number;
+  feeDragPct?: number;
   onClick: (name: string) => void;
 }
 
-export default function StrategyCard({ info, winRate, onClick }: Props) {
+export default function StrategyCard({ info, winRate, feeDragPct, onClick }: Props) {
   const pnlPos = info.dailyPnl >= 0;
 
   return (
@@ -27,10 +28,17 @@ export default function StrategyCard({ info, winRate, onClick }: Props) {
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-primary)' }}>
           {info.displayName}
         </span>
-        {info.circuitBreakerActive
-          ? <span className="badge badge-red animate-blink">⚠ CB</span>
-          : <span className="badge badge-green">● OK</span>
-        }
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          {feeDragPct != null && feeDragPct > 0 && (
+            <span className={`fee-chip tier-${feeDragTier(feeDragPct)}`} style={{ fontSize: 9 }}>
+              {formatFeeDrag(feeDragPct)}
+            </span>
+          )}
+          {info.circuitBreakerActive
+            ? <span className="badge badge-red animate-blink">⚠ CB</span>
+            : <span className="badge badge-green">● OK</span>
+          }
+        </div>
       </div>
 
       {/* Daily PnL */}

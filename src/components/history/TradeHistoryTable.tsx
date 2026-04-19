@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useState } from 'react';
 import type { TradeHistoryEntry } from '../../api/client';
-import { formatPnl, formatPct, formatPrice, formatDateTime, formatQty } from '../../utils/format';
+import { formatPnl, formatPct, formatPrice, formatDateTime, formatQty, formatFee } from '../../utils/format';
 import { formatDuration } from '../../utils/analytics';
 
 interface Props {
@@ -84,12 +84,14 @@ export default function TradeHistoryTable({ trades, isLoading }: Props) {
             </thead>
             <tbody>
               {sorted.map(t => {
-                const pos = (t.pnl ?? 0) >= 0;
+                const netVal = t.netPnl ?? t.pnl;
+              const pos = (netVal ?? 0) >= 0;
+              const feeVictim = (t.pnl ?? 0) > 0 && (t.netPnl ?? t.pnl ?? 0) < 0;
                 const exit = t.exitReason ? EXIT_LABELS[t.exitReason] ?? { label: t.exitReason, cls: 'badge-neutral' } : { label: '—', cls: 'badge-neutral' };
                 const isOpen = expanded.has(t.id);
                 return (
                   <Fragment key={t.id}>
-                    <tr onClick={() => toggleRow(t.id)} style={{ cursor: 'pointer' }}>
+                    <tr onClick={() => toggleRow(t.id)} style={{ cursor: 'pointer', background: feeVictim ? 'rgba(239,68,68,.06)' : undefined }}>
                       <td style={{ color: 'var(--text-muted)', textAlign: 'center', fontSize: 11 }}>
                         {isOpen ? '▾' : '▸'}
                       </td>
@@ -108,11 +110,18 @@ export default function TradeHistoryTable({ trades, isLoading }: Props) {
                       </td>
                       <td style={{ color: 'var(--text-secondary)' }}>{formatPrice(t.entryPrice)}</td>
                       <td style={{ color: 'var(--text-secondary)' }}>{formatPrice(t.exitPrice)}</td>
-                      <td style={{ fontWeight: 700, color: pos ? 'var(--green)' : 'var(--red)' }}>
-                        {formatPnl(t.pnl)}
+                      <td>
+                        <span className="pnl-pair">
+                          <span className="net" style={{ color: pos ? 'var(--green)' : 'var(--red)' }}>
+                            {formatPnl(netVal)}
+                          </span>
+                          {t.netPnl != null && t.netPnl !== t.pnl && (
+                            <span className="gross">gross {formatPnl(t.pnl)}</span>
+                          )}
+                        </span>
                       </td>
                       <td style={{ color: pos ? 'var(--green)' : 'var(--red)', fontSize: 11 }}>
-                        {formatPct(t.pnlPct)}
+                        {formatPct(t.netPnlPct ?? t.pnlPct)}
                       </td>
                       <td style={{ color: pos ? 'var(--green)' : 'var(--red)', fontSize: 11, fontWeight: 600 }}>
                         {t.rMultiple == null ? '—' : `${t.rMultiple >= 0 ? '+' : ''}${t.rMultiple.toFixed(2)}R`}
@@ -126,7 +135,7 @@ export default function TradeHistoryTable({ trades, isLoading }: Props) {
                     </tr>
                     {isOpen && (
                       <tr>
-                        <td colSpan={13} style={{ background: 'rgba(255,255,255,0.02)', padding: '10px 14px' }}>
+                        <td colSpan={14} style={{ background: 'rgba(255,255,255,0.02)', padding: '10px 14px' }}>
                           <ExpandedDetail t={t} />
                         </td>
                       </tr>
@@ -169,8 +178,9 @@ function SortHeader({ col, label, active, dir, onClick }: {
 }
 
 function ExpandedDetail({ t }: { t: TradeHistoryEntry }) {
+  const totalCosts = (t.entryFee ?? 0) + (t.exitFee ?? 0) + (t.entrySlippage ?? 0) + (t.exitSlippage ?? 0);
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, fontSize: 11, fontFamily: 'var(--font-mono)' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 16, fontSize: 11, fontFamily: 'var(--font-mono)' }}>
       <Block label="Entry signal reason">
         <div style={{ color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>
           {t.entrySignalReason ?? '—'}
@@ -191,6 +201,17 @@ function ExpandedDetail({ t }: { t: TradeHistoryEntry }) {
         <Row k="Executed" v={formatDateTime(t.executedAt)} c="var(--text-secondary)" />
         <Row k="Closed"   v={t.closedAt ? formatDateTime(t.closedAt) : '—'} c="var(--text-secondary)" />
         <Row k="Duration" v={formatDuration(t.holdingDurationSeconds)} c="var(--blue)" />
+      </Block>
+
+      <Block label="Costs">
+        <Row k="Entry fee"      v={formatFee(t.entryFee ?? 0)}      c="var(--red)" />
+        <Row k="Exit fee"       v={formatFee(t.exitFee ?? 0)}       c="var(--red)" />
+        <Row k="Entry slippage" v={formatFee(t.entrySlippage ?? 0)} c="var(--amber)" />
+        <Row k="Exit slippage"  v={formatFee(t.exitSlippage ?? 0)}  c="var(--amber)" />
+        <Row k="Total cost"     v={formatFee(totalCosts)}            c="var(--text-secondary)" />
+        <Row k="Net PnL"
+             v={formatPnl(t.netPnl ?? t.pnl)}
+             c={(t.netPnl ?? t.pnl ?? 0) >= 0 ? 'var(--green)' : 'var(--red)'} />
       </Block>
     </div>
   );

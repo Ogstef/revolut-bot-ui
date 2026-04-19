@@ -3,6 +3,7 @@ import type { Trade } from '../../api/client';
 import { strategyColor } from '../../utils/strategyMeta';
 import { formatPnl, formatPct, formatPrice, formatDateTime } from '../../utils/format';
 
+
 type EnrichedTrade = Trade & { strategyDisplayName: string };
 
 interface Props {
@@ -24,7 +25,7 @@ export default function AllTradesTable({ trades, isLoading }: Props) {
   const pageCount = Math.ceil(trades.length / PAGE_SIZE);
   const rows = trades.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  const totalPnl = trades.reduce((s, t) => s + (t.pnl ?? 0), 0);
+  const totalPnl = trades.reduce((s, t) => s + ((t.netPnl ?? t.pnl) ?? 0), 0);
 
   return (
     <div className="card" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -103,12 +104,14 @@ export default function AllTradesTable({ trades, isLoading }: Props) {
 }
 
 function TradeRow({ trade: t }: { trade: EnrichedTrade }) {
-  const pnlPos = t.pnl >= 0;
+  const netVal = t.netPnl ?? t.pnl;
+  const pos = (netVal ?? 0) >= 0;
+  const hasFees = t.netPnl != null && t.netPnl !== t.pnl && Math.abs((t.pnl ?? 0) - t.netPnl) >= 0.005;
   const exit = EXIT_LABELS[t.exitReason] ?? { label: t.exitReason, cls: 'badge-neutral' };
   const color = strategyColor(t.strategyName);
 
   return (
-    <tr>
+    <tr style={{ background: (t.pnl ?? 0) > 0 && (netVal ?? 0) < 0 ? 'rgba(239,68,68,.06)' : undefined }}>
       <td>
         <span style={{
           fontSize: 10, fontWeight: 600,
@@ -128,11 +131,16 @@ function TradeRow({ trade: t }: { trade: EnrichedTrade }) {
       </td>
       <td style={{ color: 'var(--text-secondary)' }}>{formatPrice(t.entryPrice)}</td>
       <td style={{ color: 'var(--text-secondary)' }}>{formatPrice(t.exitPrice)}</td>
-      <td style={{ fontWeight: 700, color: pnlPos ? 'var(--green)' : 'var(--red)' }}>
-        {formatPnl(t.pnl)}
+      <td>
+        <span className="pnl-pair">
+          <span className="net" style={{ color: pos ? 'var(--green)' : 'var(--red)' }}>
+            {formatPnl(netVal)}
+          </span>
+          {hasFees && <span className="gross">gross {formatPnl(t.pnl)}</span>}
+        </span>
       </td>
-      <td style={{ color: pnlPos ? 'var(--green)' : 'var(--red)', fontSize: 11 }}>
-        {formatPct(t.pnlPct)}
+      <td style={{ color: pos ? 'var(--green)' : 'var(--red)', fontSize: 11 }}>
+        {formatPct(t.netPnlPct ?? t.pnlPct)}
       </td>
       <td><span className={`badge ${exit.cls}`}>{exit.label}</span></td>
       <td>
