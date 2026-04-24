@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { emergencyStop, resume } from '../../api/status';
-import type { BotStatus, PairInfo, IntervalInfo } from '../../api/client';
+import type { BotStatus, PairInfo, IntervalInfo, TradingVehicle, VehicleInfo } from '../../api/client';
 import { formatPnl, formatTime } from '../../utils/format';
 import FearGreedWidget from '../FearGreedWidget';
 
@@ -13,11 +13,15 @@ interface Props {
   intervals: IntervalInfo[];
   selectedInterval: string;
   onIntervalChange: (interval: string) => void;
+  vehicles: VehicleInfo[];
+  selectedVehicle: TradingVehicle;
+  onVehicleChange: (vehicle: TradingVehicle) => void;
 }
 
 export default function Header({
   status, isLoading, pairs, selectedPair, onPairChange,
   intervals, selectedInterval, onIntervalChange,
+  vehicles, selectedVehicle, onVehicleChange,
 }: Props) {
   const qc = useQueryClient();
 
@@ -75,6 +79,13 @@ export default function Header({
           intervals={intervals}
           selected={selectedInterval}
           onChange={onIntervalChange}
+        />
+
+        {/* Vehicle dropdown */}
+        <VehicleDropdown
+          vehicles={vehicles}
+          selected={selectedVehicle}
+          onChange={onVehicleChange}
         />
 
         <span className={`badge ${status?.mode === 'LIVE' ? 'badge-red' : 'badge-amber'}`}>
@@ -218,6 +229,53 @@ function IntervalDropdown({ intervals, selected, onChange }: {
         )}
         {intervals.map(i => (
           <option key={i.label} value={i.label}>{i.label}</option>
+        ))}
+      </select>
+      <div style={{
+        position: 'absolute', right: 8,
+        fontSize: 9, color: 'var(--text-muted)', pointerEvents: 'none',
+      }}>▼</div>
+    </div>
+  );
+}
+
+function VehicleDropdown({ vehicles, selected, onChange }: {
+  vehicles: VehicleInfo[];
+  selected: TradingVehicle;
+  onChange: (vehicle: TradingVehicle) => void;
+}) {
+  const label = (v: TradingVehicle) => v === 'SPOT' ? 'SPOT' : v.replace('LEV_', '').replace('X', 'x');
+  const isLeveraged = selected !== 'SPOT';
+  return (
+    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+      <div style={{ position: 'absolute', left: 8, fontSize: 10, color: 'var(--text-muted)', pointerEvents: 'none', zIndex: 1 }}>
+        Veh
+      </div>
+      <select
+        value={selected}
+        onChange={e => onChange(e.target.value as TradingVehicle)}
+        style={{
+          background: 'var(--bg-elevated)',
+          border: `1px solid ${isLeveraged ? 'var(--amber)' : 'var(--border-bright)'}`,
+          borderRadius: 2,
+          color: isLeveraged ? 'var(--amber)' : 'var(--text-primary)',
+          fontFamily: 'var(--font-display)',
+          fontWeight: 700,
+          fontSize: 14,
+          padding: '4px 28px 4px 34px',
+          cursor: 'pointer',
+          outline: 'none',
+          appearance: 'none',
+          WebkitAppearance: 'none',
+        }}
+      >
+        {vehicles.length === 0 && (
+          <option value={selected}>{label(selected)}</option>
+        )}
+        {vehicles.map(v => (
+          <option key={v.name} value={v.name} disabled={!v.active}>
+            {label(v.name)}{!v.active ? ' (off)' : ''}
+          </option>
         ))}
       </select>
       <div style={{

@@ -65,6 +65,8 @@ function PositionRow({ pos }: { pos: EnrichedPosition }) {
   const tpDist = ((pos.takeProfit - pos.currentPrice) / pos.currentPrice) * 100;
   const slDist = ((pos.currentPrice - pos.stopLoss) / pos.currentPrice) * 100;
   const color = strategyColor(pos.strategyName);
+  const isLeveraged = pos.vehicle && pos.vehicle !== 'SPOT';
+  const vehicleLabel = isLeveraged ? pos.vehicle!.replace('LEV_', '').replace('X', 'x') : null;
 
   return (
     <tr className="animate-fade-in">
@@ -84,6 +86,16 @@ function PositionRow({ pos }: { pos: EnrichedPosition }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontWeight: 600 }}>{pos.pair}</span>
           <span className={`badge ${pos.side === 'BUY' ? 'badge-green' : 'badge-red'}`}>{pos.side}</span>
+          {vehicleLabel && (
+            <span className="badge" style={{
+              background: 'color-mix(in srgb, var(--amber) 18%, transparent)',
+              color: 'var(--amber)',
+              fontWeight: 700,
+              fontSize: 9,
+            }}>
+              {vehicleLabel}
+            </span>
+          )}
         </div>
       </td>
       <td style={{ color: 'var(--text-secondary)' }}>{formatPrice(pos.entryPrice)}</td>

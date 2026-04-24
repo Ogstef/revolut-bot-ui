@@ -51,13 +51,25 @@ export default function TradesTable({ trades, isLoading }: Props) {
               {rows.map(t => {
                 const pos = t.pnl >= 0;
                 const exit = EXIT_LABELS[t.exitReason] ?? { label: t.exitReason, cls: 'badge-neutral' };
+                const isLeveraged = t.vehicle && t.vehicle !== 'SPOT';
+                const vehicleLabel = isLeveraged ? t.vehicle!.replace('LEV_', '').replace('X', 'x') : null;
                 return (
-                  <tr key={t.id}>
+                  <tr key={`${t.vehicle ?? 'SPOT'}-${t.id}`}>
                     <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>{t.id}</td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{ fontWeight: 600 }}>{t.pair}</span>
                         <span className={`badge ${t.side === 'BUY' ? 'badge-green' : 'badge-red'}`}>{t.side}</span>
+                        {vehicleLabel && (
+                          <span className="badge" style={{
+                            background: 'color-mix(in srgb, var(--amber) 18%, transparent)',
+                            color: 'var(--amber)',
+                            fontWeight: 700,
+                            fontSize: 9,
+                          }}>
+                            {vehicleLabel}
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td style={{ color: 'var(--text-secondary)' }}>{formatPrice(t.entryPrice)}</td>

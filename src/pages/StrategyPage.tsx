@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import type { StrategyInfo } from '../api/client';
 import { KNOWN_STRATEGIES } from '../utils/strategyMeta';
 import { usePair } from '../context/PairContext';
@@ -16,7 +17,7 @@ interface Props {
 }
 
 export default function StrategyPage({ strategyName, strategyInfoList }: Props) {
-  const { selectedPair, selectedInterval } = usePair();
+  const { selectedPair, selectedInterval, selectedVehicle } = usePair();
   const { positions, trades, stats, pnl, signals } = useStrategyDetail(strategyName as StrategyName, selectedPair, selectedInterval);
 
   const info = strategyInfoList?.find(s => s.name === strategyName);
@@ -24,6 +25,18 @@ export default function StrategyPage({ strategyName, strategyInfoList }: Props) 
     info?.displayName ??
     KNOWN_STRATEGIES.find(s => s.name === strategyName)?.displayName ??
     strategyName;
+
+  // Detect leveraged rows in the fetched data even when vehicle filter isn't active
+  const leveragedPositionCount = useMemo(() => {
+    return (positions.data ?? []).filter(p => p.vehicle && p.vehicle !== 'SPOT').length;
+  }, [positions.data]);
+
+  const leveragedTradeCount = useMemo(() => {
+    return (trades.data ?? []).filter(t => t.vehicle && t.vehicle !== 'SPOT').length;
+  }, [trades.data]);
+
+  const mixedVehicleCount = leveragedPositionCount + leveragedTradeCount;
+  const showMixedBanner = selectedVehicle === 'SPOT' && mixedVehicleCount > 0;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -44,6 +57,25 @@ export default function StrategyPage({ strategyName, strategyInfoList }: Props) 
           <span className="badge badge-red animate-blink">⚠ Circuit Breaker Active</span>
         )}
       </div>
+
+      {/* Mixed-vehicle info banner */}
+      {showMixedBanner && (
+        <div style={{
+          background: 'color-mix(in srgb, var(--amber) 10%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--amber) 35%, transparent)',
+          borderRadius: 4,
+          padding: '6px 12px',
+          fontSize: 11,
+          color: 'var(--amber)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+        }}>
+          <span style={{ fontWeight: 700 }}>Mixed vehicles</span>
+          <span style={{ color: 'var(--text-secondary)' }}>—</span>
+          <span>{mixedVehicleCount} leveraged row{mixedVehicleCount !== 1 ? 's' : ''} present (rows are marked with amber badges). To view only a specific vehicle, use the Veh dropdown or switch to the Leverage tab.</span>
+        </div>
+      )}
 
       {/* Header stats bar */}
       <StrategyHeader info={info} stats={stats.data} pnl={pnl.data} />

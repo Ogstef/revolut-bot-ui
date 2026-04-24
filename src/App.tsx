@@ -3,6 +3,7 @@ import { PairProvider, usePair } from './context/PairContext';
 import { useBotStatus } from './hooks/useBotStatus';
 import { usePairs } from './hooks/usePairs';
 import { useIntervals } from './hooks/useIntervals';
+import { useVehicles } from './hooks/useVehicles';
 import { useStrategies } from './hooks/useStrategies';
 import Header from './components/layout/Header';
 import StrategyNav from './components/layout/StrategyNav';
@@ -17,14 +18,20 @@ import ActivityFeedPage from './pages/ActivityFeedPage';
 import ConsensusPage from './pages/ConsensusPage';
 import CrossIntervalPage from './pages/CrossIntervalPage';
 import ChartsPage from './pages/ChartsPage';
+import LeveragePage from './pages/LeveragePage';
 
 function AppInner() {
   const [activeTab, setActiveTab] = useState<string>('overview');
 
-  const { selectedPair, setSelectedPair, selectedInterval, setSelectedInterval } = usePair();
+  const {
+    selectedPair, setSelectedPair,
+    selectedInterval, setSelectedInterval,
+    selectedVehicle, setSelectedVehicle,
+  } = usePair();
   const statusQ     = useBotStatus();
   const pairsQ      = usePairs();
   const intervalsQ  = useIntervals();
+  const vehiclesQ   = useVehicles();
   const strategiesQ = useStrategies(selectedPair, selectedInterval);
 
   const backendDown = statusQ.isError && !statusQ.isFetching;
@@ -46,6 +53,9 @@ function AppInner() {
         intervals={Array.isArray(intervalsQ.data) ? intervalsQ.data : []}
         selectedInterval={selectedInterval}
         onIntervalChange={setSelectedInterval}
+        vehicles={Array.isArray(vehiclesQ.data) ? vehiclesQ.data : []}
+        selectedVehicle={selectedVehicle}
+        onVehicleChange={setSelectedVehicle}
       />
 
       {backendDown && (
@@ -90,6 +100,8 @@ function AppInner() {
             <CrossIntervalPage />
           ) : activeTab === 'charts' ? (
             <ChartsPage />
+          ) : activeTab === 'leverage' ? (
+            <LeveragePage onSelectStrategy={setActiveTab} />
           ) : (
             <StrategyPage
               strategyName={activeTab}

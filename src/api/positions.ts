@@ -1,5 +1,7 @@
 import { request } from './client';
-import type { Position } from './client';
+import type { Position, TradingVehicle } from './client';
 
-export const fetchLivePositions = () =>
-  request<Position[]>(`/api/positions/live`);
+export const fetchLivePositions = (vehicle?: TradingVehicle) => {
+  const qs = vehicle ? `?vehicle=${encodeURIComponent(vehicle)}` : '';
+  return request<Position[]>(`/api/positions/live${qs}`);
+};

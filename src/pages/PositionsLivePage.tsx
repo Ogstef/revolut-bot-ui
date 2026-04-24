@@ -119,11 +119,13 @@ export default function PositionsLivePage({ onSelectStrategy }: Props) {
                   <SortHeader label="Strategy"   k="displayName"      sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                   <SortHeader label="Pair"       k="pair"             sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                   <SortHeader label="Interval"   k="interval"         sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                  <th>Vehicle</th>
                   <SortHeader label="Side"       k="side"             sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                   <SortHeader label="Entry"      k="entryPrice"       sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
                   <SortHeader label="Current"    k="currentPrice"     sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
                   <SortHeader label="Qty"        k="quantity"         sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
                   <th>TP / SL Progress</th>
+                  <th style={{ textAlign: 'right' }}>Liq / Margin</th>
                   <SortHeader label="Unreal. PnL"   k="unrealisedPnl"    sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
                   <SortHeader label="Unreal. %"     k="unrealisedPnlPct" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
                   <th>Reason</th>
@@ -202,6 +204,19 @@ function PositionRow({ pos, onClick }: { pos: Position; onClick: () => void }) {
         {pos.interval ?? '—'}
       </td>
       <td>
+        {pos.vehicle && pos.vehicle !== 'SPOT' ? (
+          <span className="badge" style={{
+            background: 'color-mix(in srgb, var(--amber) 18%, transparent)',
+            color: 'var(--amber)',
+            fontWeight: 700,
+          }}>
+            {pos.vehicle.replace('LEV_', '').replace('X', 'x')}
+          </span>
+        ) : (
+          <span style={{ color: 'var(--text-muted)', fontSize: 10, fontFamily: 'var(--font-mono)' }}>SPOT</span>
+        )}
+      </td>
+      <td>
         <span className={`badge ${pos.side === 'BUY' ? 'badge-green' : 'badge-red'}`}>{pos.side}</span>
       </td>
       <td style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>{formatPrice(pos.entryPrice)}</td>
@@ -224,6 +239,26 @@ function PositionRow({ pos, onClick }: { pos: Position; onClick: () => void }) {
             <span>{tpDist.toFixed(1)}% to TP</span>
           </div>
         </div>
+      </td>
+      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+        {pos.liquidationPrice != null && pos.vehicle !== 'SPOT' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+            <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--red)' }}>
+              Liq €{pos.liquidationPrice.toFixed(2)}
+            </span>
+            {pos.currentMarginRatio != null && (
+              <span style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color: pos.currentMarginRatio > 0.6 ? 'var(--green)' : pos.currentMarginRatio > 0.3 ? 'var(--amber)' : 'var(--red)',
+              }}>
+                {(pos.currentMarginRatio * 100).toFixed(1)}% margin
+              </span>
+            )}
+          </div>
+        ) : (
+          <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>—</span>
+        )}
       </td>
       <td style={{ textAlign: 'right', fontWeight: 700, color: pnlPos ? 'var(--green)' : 'var(--red)' }}
           className={pnlPos ? 'positive' : 'negative'}>
