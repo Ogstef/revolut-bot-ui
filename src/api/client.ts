@@ -49,14 +49,6 @@ export interface Sentiment {
   subScores: SentimentSubScore[] | null;   // populated only when source === "COMBINED"
 }
 
-export type TradingVehicle = 'SPOT' | 'LEV_3X' | 'LEV_5X' | 'LEV_10X';
-
-export interface VehicleInfo {
-  name: TradingVehicle;
-  leverage: number;
-  active: boolean;
-}
-
 export interface BotStatus {
   running: boolean;
   mode: 'PAPER' | 'LIVE';
@@ -93,14 +85,6 @@ export interface Position {
   unrealisedPnlPct: number;
   signalReason: string;
   openedAt: string;
-  // Phase 13 leverage fields — nullable for SPOT
-  vehicle?: TradingVehicle;
-  leverage?: number;
-  collateral?: number | null;
-  notional?: number | null;
-  liquidationPrice?: number | null;
-  currentMarginRatio?: number | null;
-  fundingFeesAccrued?: number | null;
 }
 
 export interface Trade {
@@ -119,17 +103,11 @@ export interface Trade {
   exitFee: number;
   entrySlippage: number;
   exitSlippage: number;
-  exitReason: 'TP_HIT' | 'SL_HIT' | 'SIGNAL_EXIT' | 'MANUAL' | 'LIQUIDATED';
+  exitReason: 'TP_HIT' | 'SL_HIT' | 'SIGNAL_EXIT' | 'MANUAL';
   strategyName: StrategyName;
   tradingMode: string;
   executedAt: string;  // entry/open time
   closedAt?: string;   // exit/close time — use this for "Closed At" display
-  // Phase 13 leverage fields — defaults on SPOT: vehicle=SPOT, leverage=1, collateral=null, fundingFees=0, liquidated=false
-  vehicle?: TradingVehicle;
-  leverage?: number;
-  collateral?: number | null;
-  fundingFees?: number;
-  liquidated?: boolean;
 }
 
 /**
@@ -147,14 +125,8 @@ export interface TradeHistoryEntry {
   pnl: number | null;           // gross
   pnlPct: number | null;        // gross %
   strategyName: StrategyName;
-  exitReason: 'TP_HIT' | 'SL_HIT' | 'SIGNAL_EXIT' | 'MANUAL' | 'LIQUIDATED' | null;
+  exitReason: 'TP_HIT' | 'SL_HIT' | 'SIGNAL_EXIT' | 'MANUAL' | null;
   tradingMode: 'PAPER' | 'LIVE';
-  // Phase 13 leverage fields
-  vehicle?: TradingVehicle;
-  leverage?: number;
-  collateral?: number | null;
-  fundingFees?: number;
-  liquidated?: boolean;
   executedAt: string;
   closedAt: string | null;
   // Enrichment from the parent Position
@@ -260,7 +232,6 @@ export interface FearGreed {
 export type BotEventType =
   | 'POSITION_OPENED'
   | 'POSITION_CLOSED'
-  | 'POSITION_LIQUIDATED'
   | 'CIRCUIT_BREAKER_TRIPPED'
   | 'CIRCUIT_BREAKER_RESET'
   | 'BOT_STOPPED'

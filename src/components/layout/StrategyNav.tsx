@@ -39,7 +39,6 @@ export default function StrategyNav({ activeTab, onTabChange, strategies }: Prop
       <SideItem label="Activity"    active={activeTab === 'activity'}    onClick={() => onTabChange('activity')}    accent />
       <SideItem label="Consensus"      active={activeTab === 'consensus'}      onClick={() => onTabChange('consensus')}      accent />
       <SideItem label="Cross-Interval" active={activeTab === 'cross-interval'} onClick={() => onTabChange('cross-interval')} accent />
-      <SideItem label="⚖ Leverage"    active={activeTab === 'leverage'}       onClick={() => onTabChange('leverage')}       accent />
       <SideItem label="Charts"         active={activeTab === 'charts'}         onClick={() => onTabChange('charts')}         accent />
 
       <div style={{ height: 1, background: 'var(--border)', margin: '4px 12px' }} />
