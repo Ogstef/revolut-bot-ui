@@ -18,6 +18,9 @@ const META: Record<string, IndicatorMeta> = {
   DONCHIAN:       { emaShortLabel: 'Upper',       emaLongLabel: 'Lower',      rsiLabel: 'Width %'    },
   ICHIMOKU:       { emaShortLabel: 'Tenkan',      emaLongLabel: 'Kijun',      rsiLabel: 'Span A'     },
   SUPERTREND:     { emaShortLabel: 'Supertrend',  emaLongLabel: 'ATR',        rsiLabel: 'Distance %' },
+  REDDIT_SENTIMENT:     { emaShortLabel: 'Score',   emaLongLabel: 'Volume',  rsiLabel: 'n Posts'    },
+  CRYPTOPANIC_SENTIMENT:{ emaShortLabel: 'Score',   emaLongLabel: 'Volume',  rsiLabel: 'n Posts'    },
+  COMBINED_SENTIMENT:   { emaShortLabel: 'Score',   emaLongLabel: 'Volume',  rsiLabel: 'Disagree?'  },
 };
 
 export function getIndicatorMeta(strategyName: string): IndicatorMeta {
@@ -39,6 +42,9 @@ export const STRATEGY_COLORS: Record<string, string> = {
   DONCHIAN:       '#90caf9',
   ICHIMOKU:       '#ffcc80',
   SUPERTREND:     '#26c6da',
+  REDDIT_SENTIMENT:     '#ff4500',   // Reddit orange
+  CRYPTOPANIC_SENTIMENT:'#b39ddb',
+  COMBINED_SENTIMENT:   '#e0f7fa',
 };
 
 export function strategyColor(name: string): string {
@@ -73,4 +79,7 @@ export const KNOWN_STRATEGIES: { name: string; displayName: string }[] = [
   { name: 'DONCHIAN',       displayName: 'Donchian'        },
   { name: 'ICHIMOKU',       displayName: 'Ichimoku'        },
   { name: 'SUPERTREND',     displayName: 'Supertrend'      },
+  { name: 'REDDIT_SENTIMENT',     displayName: 'Reddit Sentiment'      },
+  { name: 'CRYPTOPANIC_SENTIMENT',displayName: 'CryptoPanic Sentiment' },
+  { name: 'COMBINED_SENTIMENT',   displayName: 'Combined Sentiment'    },
 ];

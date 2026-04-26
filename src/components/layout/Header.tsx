@@ -3,6 +3,7 @@ import { emergencyStop, resume } from '../../api/status';
 import type { BotStatus, PairInfo, IntervalInfo, TradingVehicle, VehicleInfo } from '../../api/client';
 import { formatPnl, formatTime } from '../../utils/format';
 import FearGreedWidget from '../FearGreedWidget';
+import SentimentWidget from '../SentimentWidget';
 
 interface Props {
   status: BotStatus | undefined;
@@ -116,6 +117,7 @@ export default function Header({
         } />
         <div style={{ width: 1, height: 28, background: 'var(--border)' }} />
         <FearGreedWidget />
+        <SentimentWidget />
         {status?.reportedAt && (
           <Metric label="Updated" value={
             <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>

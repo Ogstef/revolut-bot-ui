@@ -23,7 +23,31 @@ export type StrategyName =
   | 'MFI'
   | 'DONCHIAN'
   | 'ICHIMOKU'
-  | 'SUPERTREND';
+  | 'SUPERTREND'
+  | 'REDDIT_SENTIMENT'
+  | 'CRYPTOPANIC_SENTIMENT'
+  | 'COMBINED_SENTIMENT';
+
+export type SentimentSource = 'REDDIT' | 'CRYPTOPANIC' | 'COMBINED';
+
+export interface SentimentSubScore {
+  source: SentimentSource;
+  score: number | null;
+  volume: number;
+  sampleSize: number;
+}
+
+export interface Sentiment {
+  pair: string;
+  source: SentimentSource;
+  interval: string;
+  score: number | null;          // [-1, +1], null when insufficient sample
+  volume: number;
+  sampleSize: number;
+  capturedAt: string;
+  stale: boolean;                // true when sample fell below threshold
+  subScores: SentimentSubScore[] | null;   // populated only when source === "COMBINED"
+}
 
 export type TradingVehicle = 'SPOT' | 'LEV_3X' | 'LEV_5X' | 'LEV_10X';
 
