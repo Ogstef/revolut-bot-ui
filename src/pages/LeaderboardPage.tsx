@@ -3,6 +3,7 @@ import type { TripleStats, PairInfo, IntervalInfo } from '../api/client';
 import { useAllTripleStats } from '../hooks/useAllTripleStats';
 import { usePairs } from '../hooks/usePairs';
 import { useIntervals } from '../hooks/useIntervals';
+import { useTripleToggle } from '../hooks/useTripleToggle';
 import { KNOWN_STRATEGIES } from '../utils/strategyMeta';
 import { formatPnl } from '../utils/format';
 import TripleHeatmap from '../components/leaderboard/TripleHeatmap';
@@ -47,6 +48,7 @@ export default function LeaderboardPage({ onSelectStrategy }: Props) {
   const statsQ = useAllTripleStats();
   const pairsQ = usePairs();
   const intervalsQ = useIntervals();
+  const toggle = useTripleToggle();
 
   const pairInfos: PairInfo[] = Array.isArray(pairsQ.data) ? pairsQ.data : [];
   const intervalInfos: IntervalInfo[] = Array.isArray(intervalsQ.data) ? intervalsQ.data : [];
@@ -261,7 +263,8 @@ export default function LeaderboardPage({ onSelectStrategy }: Props) {
           <table className="data-table">
             <thead>
               <tr>
-                <th style={{ paddingLeft: 14 }}>Strategy</th>
+                <th style={{ paddingLeft: 14, width: 80 }} title="Enable / disable new entries (existing positions still monitored)">Active</th>
+                <th>Strategy</th>
                 <th>Pair</th>
                 <th>Interval</th>
                 <SortHeader label="Trades"     col="totalTrades"    sortKey={sortKey} sortDesc={sortDesc} onClick={toggleSort} />
@@ -285,6 +288,7 @@ export default function LeaderboardPage({ onSelectStrategy }: Props) {
                 const rankBest = top3.bestTrade.get(k)   ?? null;
                 const isHighlight = highlightKey === k;
                 const isFlash = flashKey === k;
+                const disabled = r.enabled === false;
                 return (
                   <tr
                     key={k}
@@ -299,9 +303,38 @@ export default function LeaderboardPage({ onSelectStrategy }: Props) {
                           : rankPnl === 1 ? 'rgba(0,230,118,0.03)' : undefined,
                       borderLeft: rankPnl != null ? '3px solid var(--green)' : '3px solid transparent',
                       transition: 'background 300ms ease',
+                      opacity: disabled ? 0.45 : 1,
                     }}
                   >
-                    <td style={{ paddingLeft: 14, fontWeight: 600 }}>{r.displayName}</td>
+                    <td
+                      style={{ paddingLeft: 14 }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ActiveToggle
+                        enabled={!disabled}
+                        pending={toggle.isPending}
+                        onChange={(nextEnabled) => {
+                          if (!nextEnabled) {
+                            const ok = window.confirm(
+                              `Disable ${r.displayName} on ${r.pair} ${r.interval}?\n\n` +
+                              `Soft-disable: no NEW entries. Existing positions keep their TP/SL ` +
+                              `monitor and exit normally.`
+                            );
+                            if (!ok) return;
+                            toggle.mutate({
+                              pair: r.pair, strategy: r.strategy, interval: r.interval,
+                              enabled: false, reason: 'manual UI toggle',
+                            });
+                          } else {
+                            toggle.mutate({
+                              pair: r.pair, strategy: r.strategy, interval: r.interval,
+                              enabled: true,
+                            });
+                          }
+                        }}
+                      />
+                    </td>
+                    <td style={{ fontWeight: 600 }}>{r.displayName}</td>
                     <td className="mono">{r.pair}</td>
                     <td className="mono">{r.interval}</td>
                     <td>{r.totalTrades.toLocaleString('en-US')}</td>
@@ -407,6 +440,45 @@ function RankedCell({ rank, format, color, suffix }: {
         </span>
       </span>
     </td>
+  );
+}
+
+function ActiveToggle({ enabled, pending, onChange }: {
+  enabled: boolean;
+  pending: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  const color = enabled ? 'var(--green)' : 'var(--red)';
+  const label = enabled ? 'ON' : 'OFF';
+  return (
+    <button
+      type="button"
+      disabled={pending}
+      onClick={() => onChange(!enabled)}
+      title={enabled
+        ? 'Click to DISABLE — blocks new entries. Existing positions still monitored.'
+        : 'Click to ENABLE — new entries allowed again on the next cycle.'}
+      style={{
+        minWidth: 56,
+        height: 24,
+        padding: '0 10px',
+        borderRadius: 4,
+        border: `1px solid ${color}`,
+        background: `${color}25`,
+        color,
+        fontFamily: 'var(--font-mono)',
+        fontSize: 11,
+        fontWeight: 700,
+        letterSpacing: '0.08em',
+        cursor: pending ? 'wait' : 'pointer',
+        transition: 'background 120ms ease, transform 80ms ease',
+        opacity: pending ? 0.55 : 1,
+      }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = `${color}45`; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = `${color}25`; }}
+    >
+      {pending ? '…' : label}
+    </button>
   );
 }
 

@@ -1,5 +1,5 @@
 import { request } from './client';
-import type { StrategyName, StrategyInfo, Position, Trade, Stats, PnlBreakdown, ConfigUpdate, TripleStats } from './client';
+import type { StrategyName, StrategyInfo, Position, Trade, Stats, PnlBreakdown, ConfigUpdate, TripleStats, DisabledTriple } from './client';
 
 function qs(pair: string, interval?: string, extra?: Record<string, string | number>): string {
   const parts: string[] = [`pair=${encodeURIComponent(pair)}`];
@@ -30,3 +30,18 @@ export const fetchAllTripleStats = () =>
 
 export const updateConfig = (cfg: ConfigUpdate) =>
   request<string>('/api/config', { method: 'POST', body: JSON.stringify(cfg) });
+
+export const fetchDisabledTriples = () =>
+  request<DisabledTriple[]>('/api/triples/disabled');
+
+export const disableTriple = (pair: string, strategy: StrategyName, interval: string, reason?: string) =>
+  request<DisabledTriple>(
+    `/api/triples/${encodeURIComponent(pair)}/${encodeURIComponent(strategy)}/${encodeURIComponent(interval)}/disable`,
+    { method: 'POST', body: JSON.stringify({ reason: reason ?? null }) }
+  );
+
+export const enableTriple = (pair: string, strategy: StrategyName, interval: string) =>
+  request<string>(
+    `/api/triples/${encodeURIComponent(pair)}/${encodeURIComponent(strategy)}/${encodeURIComponent(interval)}/enable`,
+    { method: 'POST' }
+  );

@@ -261,6 +261,15 @@ export interface TripleStats {
   totalCosts: number;
   feeDragPct: number;
   netExpectancy: number;
+  enabled: boolean;
+}
+
+export interface DisabledTriple {
+  pair: string;
+  strategy: StrategyName;
+  interval: string;
+  disabledAt: string;
+  reason: string | null;
 }
 
 export interface BotEvent {
