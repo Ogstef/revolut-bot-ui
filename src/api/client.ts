@@ -272,6 +272,106 @@ export interface DisabledTriple {
   reason: string | null;
 }
 
+// ─── Backtester ─────────────────────────────────────────────────────────────
+
+export interface BacktestRequest {
+  pair: string;
+  strategy: StrategyName;
+  interval: string;
+  startDate: string;       // ISO 8601, no TZ
+  endDate: string;
+  startingBalance?: number;
+  paramOverrides?: Record<string, number>;
+  label?: string;
+  notes?: string;
+}
+
+export interface BacktestStats {
+  totalTrades: number;
+  winningTrades: number;
+  losingTrades: number;
+  winRate: number;
+  totalPnl: number;
+  averageWin: number;
+  averageLoss: number;
+  bestTrade: number;
+  worstTrade: number;
+  expectancy: number;
+  netPnl: number;
+  totalFees: number;
+  totalSlippage: number;
+  feeDragPct: number;
+  netExpectancy: number;
+  sharpeRatio: number;
+  maxDrawdown: number;
+  maxDrawdownPct: number;
+  maxDrawdownDurationBars: number;
+  profitFactor: number;
+  maxConsecutiveLosses: number;
+  tradesPerMonth: number;
+  tStatistic: number;
+  pnlStdDev: number;
+}
+
+export interface SimulatedTrade {
+  sequence: number;
+  side: 'BUY' | 'SELL';
+  entryPrice: number;
+  exitPrice: number;
+  quantity: number;
+  executedAt: string;
+  closedAt: string;
+  pnl: number;
+  pnlPct: number;
+  entryFee: number;
+  exitFee: number;
+  entrySlippage: number;
+  exitSlippage: number;
+  netPnl: number;
+  netPnlPct: number;
+  exitReason: 'TP_HIT' | 'SL_HIT' | 'SIGNAL_EXIT' | 'BACKTEST_END';
+  entrySignalReason: string;
+}
+
+export interface EquityPoint {
+  timestamp: string;
+  equity: number;
+  drawdown: number;
+  drawdownPct: number;
+}
+
+export interface BacktestRunSummary {
+  id: string;
+  pair: string;
+  strategy: StrategyName;
+  interval: string;
+  startDate: string;
+  endDate: string;
+  startingBalance: number;
+  stats: BacktestStats;
+  label: string | null;
+  createdAt: string;
+}
+
+export interface BacktestRunDetail extends BacktestRunSummary {
+  params: Record<string, unknown>;
+  trades: SimulatedTrade[];
+  equityCurve: EquityPoint[];
+  notes: string | null;
+}
+
+export type ConsistencyVerdict = 'STABLE' | 'REGIME_DEPENDENT' | 'WILDLY_VARYING';
+
+export interface WalkForwardResult {
+  windows: BacktestRunSummary[];
+  varianceMetrics: {
+    winRateStdDev: number;
+    expectancyStdDev: number;
+    netPnlStdDev: number;
+    consistencyVerdict: ConsistencyVerdict;
+  };
+}
+
 export interface BotEvent {
   id: number;
   type: BotEventType;
