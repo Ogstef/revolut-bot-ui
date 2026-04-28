@@ -481,45 +481,83 @@ function TradesTable({ trades }: { trades: SimulatedTrade[] }) {
 
 function WalkForwardPanel({ result }: { result: WalkForwardResult }) {
   const verdict = result.varianceMetrics.consistencyVerdict;
-  const banner = verdict === 'STABLE'           ? { color: 'var(--green)', text: '✓ Edge holds across windows — likely real' }
-              : verdict === 'REGIME_DEPENDENT' ? { color: 'var(--amber)', text: '⚠ Regime-dependent — works sometimes, not others' }
-                                               : { color: 'var(--red)',   text: '✗ Wildly varying / negative — likely overfit or no edge' };
+  const banner = verdict === 'STABLE'
+    ? { color: 'var(--green)', label: 'STABLE',
+        text: '✓ Edge holds across windows — likely real' }
+    : verdict === 'REGIME_DEPENDENT'
+    ? { color: 'var(--amber)', label: 'REGIME DEPENDENT',
+        text: '⚠ Regime-dependent — works sometimes, not others' }
+    : verdict === 'WILDLY_VARYING_HIGH_VARIANCE'
+    ? { color: 'var(--amber)', label: 'WILDLY VARYING',
+        text: '⚠ Mean is positive but stddev is high — edge inconsistent or sample too small to confirm' }
+    : { color: 'var(--red)',   label: 'WILDLY VARYING',
+        text: '✗ Mean negative across windows — likely no edge or overfit' };
+
+  const totalConfigured = result.windows.length + result.skippedWindows.length;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div className="card" style={{ borderLeft: `3px solid ${banner.color}`, padding: '12px 16px' }}>
         <div style={{ color: banner.color, fontSize: 14, fontWeight: 700, letterSpacing: '0.04em' }}>
-          {verdict.replace('_', ' ')}
+          {banner.label}
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>{banner.text}</div>
         <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 8, fontFamily: 'var(--font-mono)' }}>
           stddev — winRate: {result.varianceMetrics.winRateStdDev.toFixed(2)} · expectancy: {result.varianceMetrics.expectancyStdDev.toFixed(2)} · netPnl: €{result.varianceMetrics.netPnlStdDev.toFixed(2)}
+          {totalConfigured > 0 && ` · ${result.windows.length}/${totalConfigured} windows ran`}
         </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${result.windows.length}, 1fr)`, gap: 10 }}>
-        {result.windows.map((w, i) => (
-          <div key={w.id} className="card" style={{ padding: 10 }}>
-            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 6 }}>
-              window {i + 1} · {w.startDate.slice(0, 10)} → {w.endDate.slice(0, 10)}
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, fontSize: 11 }}>
-              <div><span className="label" style={{ fontSize: 8 }}>Net PnL</span><br />
-                <span style={{ color: w.stats.netPnl >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>
-                  {formatPnl(w.stats.netPnl)}
-                </span>
-              </div>
-              <div><span className="label" style={{ fontSize: 8 }}>Win rate</span><br />
-                {w.stats.winRate.toFixed(1)}%
-              </div>
-              <div><span className="label" style={{ fontSize: 8 }}>Trades</span><br />
-                {w.stats.totalTrades}
-              </div>
-              <div><span className="label" style={{ fontSize: 8 }}>Sharpe</span><br />
-                {w.stats.sharpeRatio.toFixed(2)}
-              </div>
-            </div>
+
+      {result.skippedWindows.length > 0 && (
+        <div className="card" style={{
+          borderLeft: '3px solid var(--amber)',
+          padding: '10px 14px',
+          background: 'color-mix(in srgb, var(--amber) 6%, transparent)',
+        }}>
+          <div style={{ fontSize: 11, color: 'var(--amber)', fontWeight: 700, marginBottom: 4 }}>
+            ⚠ {result.skippedWindows.length} of {totalConfigured} window{totalConfigured === 1 ? '' : 's'} skipped — no candle data in range
           </div>
-        ))}
-      </div>
+          {result.skippedWindows.map(sw => (
+            <div key={sw.index} style={{
+              fontSize: 10, color: 'var(--text-secondary)',
+              fontFamily: 'var(--font-mono)', marginTop: 2,
+            }}>
+              window {sw.index} · {sw.startDate.slice(0, 10)} → {sw.endDate.slice(0, 10)} · {sw.reason}
+            </div>
+          ))}
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6 }}>
+            Tip: 15m candle history caps at ~47 days. For longer windows, switch to 1h or coarser.
+          </div>
+        </div>
+      )}
+
+      {result.windows.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${result.windows.length}, 1fr)`, gap: 10 }}>
+          {result.windows.map((w) => (
+            <div key={w.id} className="card" style={{ padding: 10 }}>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 6 }}>
+                {w.startDate.slice(0, 10)} → {w.endDate.slice(0, 10)}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, fontSize: 11 }}>
+                <div><span className="label" style={{ fontSize: 8 }}>Net PnL</span><br />
+                  <span style={{ color: w.stats.netPnl >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>
+                    {formatPnl(w.stats.netPnl)}
+                  </span>
+                </div>
+                <div><span className="label" style={{ fontSize: 8 }}>Win rate</span><br />
+                  {w.stats.winRate.toFixed(1)}%
+                </div>
+                <div><span className="label" style={{ fontSize: 8 }}>Trades</span><br />
+                  {w.stats.totalTrades}
+                </div>
+                <div><span className="label" style={{ fontSize: 8 }}>Sharpe</span><br />
+                  {w.stats.sharpeRatio.toFixed(2)}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

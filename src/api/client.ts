@@ -360,10 +360,22 @@ export interface BacktestRunDetail extends BacktestRunSummary {
   notes: string | null;
 }
 
-export type ConsistencyVerdict = 'STABLE' | 'REGIME_DEPENDENT' | 'WILDLY_VARYING';
+export type ConsistencyVerdict =
+  | 'STABLE'
+  | 'REGIME_DEPENDENT'
+  | 'WILDLY_VARYING_HIGH_VARIANCE'
+  | 'WILDLY_VARYING_NEGATIVE';
+
+export interface SkippedWindow {
+  index: number;          // 1-based
+  startDate: string;      // ISO 8601
+  endDate: string;
+  reason: string;
+}
 
 export interface WalkForwardResult {
   windows: BacktestRunSummary[];
+  skippedWindows: SkippedWindow[];
   varianceMetrics: {
     winRateStdDev: number;
     expectancyStdDev: number;
