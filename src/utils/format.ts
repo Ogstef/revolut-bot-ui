@@ -1,6 +1,6 @@
 export function formatPnl(val: number | null | undefined): string {
   if (val == null) return '—';
-  const sign = val >= 0 ? '+' : '';
+  const sign = val >= 0 ? '+' : '−';
   return `${sign}€${Math.abs(val).toFixed(2)}`;
 }
 
@@ -12,8 +12,8 @@ export function formatAxisPnl(val: number | null | undefined): string {
 
 export function formatPct(val: number | null | undefined): string {
   if (val == null) return '—';
-  const sign = val >= 0 ? '+' : '';
-  return `${sign}${val.toFixed(2)}%`;
+  const sign = val >= 0 ? '+' : '−';
+  return `${sign}${Math.abs(val).toFixed(2)}%`;
 }
 
 export function formatPrice(val: number | null | undefined): string {
