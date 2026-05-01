@@ -397,6 +397,50 @@ export interface BotEvent {
   createdAt: string;
 }
 
+export interface TodayTripleRow {
+  pair: string;
+  interval: string;
+  strategy: StrategyName;
+  displayName: string;
+  totalTrades: number;
+  winningTrades: number;
+  losingTrades: number;
+  grossPnl: number;
+  netPnl: number;
+  totalCosts: number;
+}
+
+export interface TodaySummary {
+  date: string;             // ISO LocalDate (e.g. "2026-05-01")
+  startOfDay: string;       // ISO LocalDateTime
+  generatedAt: string;      // ISO LocalDateTime
+
+  totalTrades: number;
+  winningTrades: number;
+  losingTrades: number;
+  winRate: number;          // 0-100
+
+  grossPnl: number;
+  netPnl: number;
+  totalFees: number;
+  totalSlippage: number;
+  feeDragPct: number;
+
+  bestTrade: number;
+  worstTrade: number;
+  averageWin: number;
+  averageLoss: number;
+  expectancy: number;
+
+  positionsOpenedToday: number;
+  positionsClosedToday: number;
+  openPositionsNow: number;
+
+  byTriple: TodayTripleRow[];
+  trades: Trade[];
+  openPositions: Position[];
+}
+
 export interface CandleBar {
   time: number;    // Unix epoch seconds
   open: number;

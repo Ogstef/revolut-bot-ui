@@ -31,6 +31,7 @@ export default function StrategyNav({ activeTab, onTabChange, strategies }: Prop
     }}>
       {/* Fixed nav items */}
       <SideItem label="Overview"  active={activeTab === 'overview'}   onClick={() => onTabChange('overview')} />
+      <SideItem label="Today"     active={activeTab === 'today'}      onClick={() => onTabChange('today')} accent />
       <SideItem label="Portfolio" active={activeTab === 'portfolio'}  onClick={() => onTabChange('portfolio')} accent />
       <SideItem label="History"   active={activeTab === 'history'}    onClick={() => onTabChange('history')}  accent />
       <SideItem label="Signals"   active={activeTab === 'signals'}    onClick={() => onTabChange('signals')}  accent />

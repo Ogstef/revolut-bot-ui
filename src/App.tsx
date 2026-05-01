@@ -7,6 +7,7 @@ import { useStrategies } from './hooks/useStrategies';
 import Header from './components/layout/Header';
 import StrategyNav from './components/layout/StrategyNav';
 import OverviewPage from './pages/OverviewPage';
+import TodayPage from './pages/TodayPage';
 import StrategyPage from './pages/StrategyPage';
 import PortfolioPage from './pages/PortfolioPage';
 import HistoryPage from './pages/HistoryPage';
@@ -76,6 +77,8 @@ function AppInner() {
         <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
           {activeTab === 'overview' ? (
             <OverviewPage onStrategyClick={setActiveTab} />
+          ) : activeTab === 'today' ? (
+            <TodayPage onSelectStrategy={setActiveTab} />
           ) : activeTab === 'portfolio' ? (
             <PortfolioPage />
           ) : activeTab === 'history' ? (

@@ -123,6 +123,7 @@ The **pair dropdown** and **interval dropdown** live in the header, always visib
 
 Top-level views:
 - **Overview** — all 12 strategies for the selected pair + interval, side by side, plus a cross-interval comparison section
+- **Today** — today-only digest across all 240 triples: KPI strip (trades / wins / losses / win rate / net + gross PnL / fees / slippage / best / worst / expectancy / fee drag), per-strategy breakdown table, today's closed trades (with WINS / LOSSES filter), and positions opened today that are still open. Ignores the global pair/interval selectors. Backed by `GET /api/today` + `useToday` (30s polling); rendered by `src/pages/TodayPage.tsx`.
 - **Portfolio** — aggregated view across all strategies (optionally across all intervals)
 - **History** — forensic per-(pair, strategy, interval) trade-by-trade analytics with date filters, KPI strip, equity/drawdown chart, monthly heatmap, exit-reason donut, duration histogram, R-multiple distribution, day×hour heatmap, streak timeline, and a sortable/filterable/expandable trade table (see Page 3 below)
 - **Signals** — full `pair × strategy × interval` matrix of the latest signal each strategy has produced, with a click-to-expand reason, confidence, indicators, and relative timestamp. Ignores the global pair/interval selectors (shows everything at once). Backed by `GET /api/signals/current` + `useCurrentSignals` hook; rendered by `src/pages/CurrentSignalsPage.tsx`.
@@ -515,6 +516,7 @@ useQuery({
 | `/api/stats/all-triples` | 30s | Leaderboard + Cross-Interval tabs (same cache key) |
 | `/api/strategies/{name}/trades` (× 5 intervals) | 30s | Cross-Interval tab — fanned out via `useAllIntervalTrades` |
 | `/api/activity` | 15s | Activity feed tab |
+| `/api/today` | 30s | Today tab |
 | `/api/market/fear-greed` | 3600s | Cached hourly |
 
 Use `refetchIntervalInBackground: false` — pause polling when the tab is hidden.
