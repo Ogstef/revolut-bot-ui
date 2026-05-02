@@ -26,7 +26,8 @@ export type StrategyName =
   | 'SUPERTREND'
   | 'REDDIT_SENTIMENT'
   | 'CRYPTOPANIC_SENTIMENT'
-  | 'COMBINED_SENTIMENT';
+  | 'COMBINED_SENTIMENT'
+  | 'MARKET_CONTEXT';
 
 export type SentimentSource = 'REDDIT' | 'CRYPTOPANIC' | 'COMBINED';
 

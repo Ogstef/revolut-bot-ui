@@ -21,6 +21,7 @@ const META: Record<string, IndicatorMeta> = {
   REDDIT_SENTIMENT:     { emaShortLabel: 'Score',   emaLongLabel: 'Volume',  rsiLabel: 'n Posts'    },
   CRYPTOPANIC_SENTIMENT:{ emaShortLabel: 'Score',   emaLongLabel: 'Volume',  rsiLabel: 'n Posts'    },
   COMBINED_SENTIMENT:   { emaShortLabel: 'Score',   emaLongLabel: 'Volume',  rsiLabel: 'Disagree?'  },
+  MARKET_CONTEXT:       { emaShortLabel: 'F&G',     emaLongLabel: 'Bid/Ask', rsiLabel: null         },
 };
 
 export function getIndicatorMeta(strategyName: string): IndicatorMeta {
@@ -45,6 +46,7 @@ export const STRATEGY_COLORS: Record<string, string> = {
   REDDIT_SENTIMENT:     '#ff4500',   // Reddit orange
   CRYPTOPANIC_SENTIMENT:'#b39ddb',
   COMBINED_SENTIMENT:   '#e0f7fa',
+  MARKET_CONTEXT:       '#9c27b0',   // distinct violet — macro context line
 };
 
 export function strategyColor(name: string): string {
@@ -82,4 +84,5 @@ export const KNOWN_STRATEGIES: { name: string; displayName: string }[] = [
   { name: 'REDDIT_SENTIMENT',     displayName: 'Reddit Sentiment'      },
   { name: 'CRYPTOPANIC_SENTIMENT',displayName: 'CryptoPanic Sentiment' },
   { name: 'COMBINED_SENTIMENT',   displayName: 'Combined Sentiment'    },
+  { name: 'MARKET_CONTEXT',       displayName: 'Market Context'        },
 ];
